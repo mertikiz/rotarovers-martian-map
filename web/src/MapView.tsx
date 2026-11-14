@@ -16,7 +16,7 @@ import { transform } from 'ol/proj.js'
 import 'ol/ol.css'
 import { EQC, LONLAT } from './mars.ts'
 import { routeLengthM, type LonLat } from './geo.ts'
-import { safeHttpUrl } from './url.ts'
+import { getJson, safeHttpUrl } from './url.ts'
 
 type LayersMeta = {
   dtm: string
@@ -97,7 +97,7 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
   const target = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const routeLayer = useRef<VectorLayer | null>(null)
-  const walkerFeature = useRef(new Feature<Point>())
+  const [walkerFeature] = useState(() => new Feature<Point>()) // created once, not on every render
   const selectedRef = useRef<number | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -108,8 +108,8 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
     let cancelled = false
 
     Promise.all([
-      fetch('/data/layers.json').then((r) => r.json() as Promise<LayersMeta>),
-      fetch('/data/route.geojson').then((r) => r.json() as Promise<RouteCollection>),
+      getJson<LayersMeta>('/data/layers.json'),
+      getJson<RouteCollection>('/data/route.geojson'),
     ])
       .then(([layers, route]) => {
         if (cancelled || !target.current) return
@@ -129,7 +129,7 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
             imageLayer('/data/hillshade.png'),
             imageLayer('/data/slope.png', 0.85),
             vector,
-            new VectorLayer({ source: new VectorSource({ features: [walkerFeature.current] }), style: walkerStyle() }),
+            new VectorLayer({ source: new VectorSource({ features: [walkerFeature] }), style: walkerStyle() }),
           ],
           view: new View({ projection: EQC, extent: layers.extent, constrainOnlyCenter: true, maxZoom: 22 }),
         })
@@ -181,11 +181,11 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
       mapRef.current = null
       routeLayer.current = null
     }
-  }, [])
+  }, [walkerFeature]) // stable (created once), so the map is still built only once
 
   useEffect(() => {
-    walkerFeature.current.setGeometry(walker ? new Point(transform(walker, LONLAT, EQC)) : undefined)
-  }, [walker])
+    walkerFeature.setGeometry(walker ? new Point(transform(walker, LONLAT, EQC)) : undefined)
+  }, [walker, walkerFeature])
 
   // Redraw the stop highlight and bring the selected stop into view if it is off screen.
   useEffect(() => {
@@ -210,10 +210,10 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
 
   return (
     <div className="map-shell">
-      <div ref={target} className="map" />
+      <div ref={target} className="map" role="region" aria-label="Map of the walking route" />
       <aside className="panel" aria-label="Route summary">
         <h1>RotaRovers Martian Map</h1>
-        <p className="muted">Planned Marswalk south of Gale crater</p>
+        <p className="muted">Planned Marswalk in Gale crater, on its central mound (Mount Sharp)</p>
         {error && <p className="error">Could not load map data: {error}</p>}
         {summary && (
           <>
@@ -223,7 +223,7 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
             <dl className="stats">
               <dt>Round trip</dt>
               <dd>{(summary.lengthM / 1000).toFixed(2)} km</dd>
-              <dt>Steepest point</dt>
+              <dt>Steepest point (5 m grid)</dt>
               <dd>{summary.maxSlopeDeg.toFixed(1)}°</dd>
               <dt>Climb / descent</dt>
               <dd>
@@ -263,7 +263,7 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                 <span className="swatch line" /> Route avoiding slopes over {summary.slopeLimitDeg}°, out and back
               </li>
               <li>
-                <span className="swatch base" /> Base (B): start and end, next to stop 1
+                <span className="swatch base" /> Base (B): start and end, at stop 1
               </li>
               {summary.slopeClasses.map((c, i) => {
                 const next = summary.slopeClasses[i + 1]

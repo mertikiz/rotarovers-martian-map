@@ -166,7 +166,7 @@ export function ElevationProfile({
           </h3>
           <p className="walk-elevation-subtitle">
             {route.isRoundTrip
-              ? 'Round-trip profile (symmetric around the turnaround at Stop #5). Click any stop marker to jump there.'
+              ? `Round-trip profile (symmetric around the turnaround at Stop #${lastStop?.order ?? ''}). Click a stop marker, or use the "Jump here" buttons below, to move there.`
               : 'Elevation along the planned route.'}
           </p>
         </div>

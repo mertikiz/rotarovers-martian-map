@@ -1,6 +1,6 @@
 ---
 name: science-stops
-description: Use when researching, choosing, writing up or checking the science stops in content/stops.csv (past habitability and water, study area south of Gale crater). Keeps every stop inside the study area, sourced, and honestly worded.
+description: Use when researching, choosing, writing up or checking the science stops in content/stops.csv (past habitability and water, study area inside Gale crater, on its central mound). Keeps every stop inside the study area, sourced, and honestly worded.
 ---
 
 # Science stops for the RotaRovers Marswalk
@@ -9,7 +9,7 @@ The team chose the science objective (**past habitability and water**) and the a
 research well. **Do not invent new project directions; do not invent facts or sources.**
 
 ## Study area
-HiRISE DTM `DTEEC_006855_1750_007501_1750_A01`, south of Gale crater, about **137.1716–137.2895 °E,
+HiRISE DTM `DTEEC_006855_1750_007501_1750_A01`, inside Gale crater on its central mound (HiRISE: "Chasm in Gale Crater's Interior Mound"), about **137.1716–137.2895 °E,
 5.2217–4.9504 °S**. Every stop must be inside this box. Coordinates: longitude east-positive (−180…180), latitude in
 degrees (negative = south), as in `content/README.md`.
 

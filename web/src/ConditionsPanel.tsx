@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_WALK_SPEED_KMH, DEFAULT_WALK_SPEED_MPS, formatDuration } from './walkUtils.ts'
-import { safeHttpUrl } from './url.ts'
+import { getJson, safeHttpUrl } from './url.ts'
 
 type Conditions = {
   generated_utc: string
@@ -63,13 +63,13 @@ export default function ConditionsPanel() {
   useEffect(() => {
     let cancelled = false
     Promise.all([
-      fetch('/data/conditions.json').then((r) => r.json() as Promise<Conditions>),
-      fetch('/data/route.geojson').then((r) => r.json()),
+      getJson<Conditions>('/data/conditions.json'),
+      getJson<{ features: { properties: { role: string; length_m?: number } }[] }>('/data/route.geojson'),
     ])
       .then(([c, route]) => {
         if (cancelled) return
         setCond(c)
-        const line = route.features.find((f: { properties: { role: string } }) => f.properties.role === 'route')
+        const line = route.features.find((f) => f.properties.role === 'route')
         setWalkM(Number(line?.properties.length_m) || null)
       })
       .catch((e: unknown) => !cancelled && setError(String(e)))
@@ -137,7 +137,12 @@ export default function ConditionsPanel() {
           </dl>
           {walkSec && daylightHours && (
             <p className="cond-walk">
-              The walk takes about {formatDuration(walkSec)} at the assumed {DEFAULT_WALK_SPEED_KMH} km/h, well inside
+              The walk takes about {formatDuration(walkSec)} at the assumed {DEFAULT_WALK_SPEED_KMH} km/h,{' '}
+              {walkSec / 3600 <= daylightHours / 2
+                ? 'well inside'
+                : walkSec / 3600 <= daylightHours
+                  ? 'inside'
+                  : 'longer than'}{' '}
               the roughly {daylightHours}-hour sunrise-to-sunset window.
             </p>
           )}

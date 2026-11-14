@@ -111,6 +111,15 @@ def ground_distance_m(lon1, lat1, lon2, lat2):
     return 2 * MARS_RADIUS_M * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def stop_cell(x, y, transform, shape, name="stop"):
+    """Grid cell of a point in DTM metres. A point outside the grid stops the run with a message; numpy would
+    otherwise wrap a negative index to the far side of the grid or raise IndexError at the edge."""
+    row, col = (int(v) for v in rasterio.transform.rowcol(transform, x, y))
+    if not (0 <= row < shape[0] and 0 <= col < shape[1]):
+        raise SystemExit(f"{name} lies on or outside the edge of the DTM grid (row {row}, col {col}).")
+    return row, col
+
+
 def snap(rc, ok, transform, max_m=SNAP_MAX_M):
     """Nearest walkable cell to rc, if within max_m; returns (cell, metres moved)."""
     if ok[rc]:
@@ -139,8 +148,7 @@ def build_route(cell_m=5.0, limit_deg=20.0, snap_m=SNAP_MAX_M):
         if not in_footprint(s["lon"], s["lat"]):
             raise SystemExit(f"Stop {s['order']} ({s['name']}) is outside the DTM footprint.")
         x, y = TO_EQC.transform(s["lon"], s["lat"])
-        row, col = rasterio.transform.rowcol(transform, x, y)
-        cell, moved = snap((int(row), int(col)), ok, transform, snap_m)
+        cell, moved = snap(stop_cell(x, y, transform, z.shape, s["name"]), ok, transform, snap_m)
         if cell is None:
             raise SystemExit(f"Stop {s['order']} ({s['name']}): no walkable ground within {snap_m:g} m.")
         s["snapped_m"] = round(moved, 1)
@@ -190,7 +198,7 @@ def build_route(cell_m=5.0, limit_deg=20.0, snap_m=SNAP_MAX_M):
                                      outbound_length_m=round(outbound, 1),
                                      elevation_m=[round(e, 1) for e in elev],  # one per coordinate
                                      **({"sample": True} if is_sample else {})))]
-    base = dict(role="base", name="Base: start and end of the walk, next to stop 1")
+    base = dict(role="base", name="Base: start and end of the walk, at stop 1")
     if is_sample:
         base["sample"] = True
     features.append(dict(type="Feature", geometry=dict(type="Point", coordinates=coords[0]), properties=base))

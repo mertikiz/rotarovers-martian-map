@@ -33,6 +33,17 @@ def test_blocked_cells_get_a_buffer_so_diagonals_cannot_cut_corners():
     assert ok[0, 0] and ok[6, 6]
 
 
+def test_a_stop_on_the_grid_edge_is_rejected_clearly():
+    # A point on the footprint's east edge maps to column == width: it must stop with a message,
+    # not raise IndexError or wrap around to the other side of the grid.
+    t = Affine(5.0, 0, 0, 0, -5.0, 0)
+    with pytest.raises(SystemExit):
+        R.stop_cell(10 * 5.0, -2.5, t, (4, 10))  # x = 50 m -> col 10 of 0..9
+    with pytest.raises(SystemExit):
+        R.stop_cell(2.5, 2.5, t, (4, 10))  # y above the grid -> row -1
+    assert R.stop_cell(2.5, -2.5, t, (4, 10)) == (0, 0)
+
+
 def test_router_never_enters_an_impassable_cell():
     ok = np.ones((9, 9), bool)
     ok[1:9, 4] = False                      # a wall with a gap at the top row

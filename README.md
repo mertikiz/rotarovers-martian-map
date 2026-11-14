@@ -7,7 +7,7 @@ Team **RotaRovers** · 2026 NASA Space Apps Challenge (Universal Event) · Chall
 
 A map a Mars astronaut uses **before a Marswalk to plan it** and **during the walk to follow it**: a route computed from
 NASA terrain data that keeps the crew on walkable slopes while reaching stops of scientific interest for past
-habitability and water, near Gale crater.
+habitability and water, in Gale crater on its central mound (Mount Sharp).
 
 ## Repository layout
 | Path | What |
