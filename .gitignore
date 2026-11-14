@@ -1,0 +1,15 @@
+# Data downloads (large, re-downloadable)
+data/
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+# Secrets
+.env
+.env.*
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/*
+.idea/
