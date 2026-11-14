@@ -30,5 +30,7 @@ development; the real route is produced by the pipeline.
 - collection: `dtm`, `cell_m`, `slope_limit_deg`, `note`
 
 While `content/stops.csv` is empty the pipeline uses `pipeline/placeholder_stops.csv`, and the file is marked
-`"sample": true`. All stops must lie in **one connected walkable area**: a steep ridge splits the footprint, and the
+`"sample": true`. Map layers come from `python pipeline/layers.py`: `hillshade.png`, `slope.png` (15–20° amber,
+over 20° red) and `layers.json` (their extent in DTM projection metres), all in `web/public/data/`.
+All stops must lie in **one connected walkable area**: a steep ridge splits the footprint, and the
 pipeline stops with an error if two stops are on different sides of it.

@@ -20,18 +20,21 @@ habitability and water, near Gale crater.
 cd web
 npm ci
 npm run dev
+npm test        # web route length agrees with the pipeline (Mars radius)
 ```
 
 ```bash
 python -m venv .venv
 .venv/Scripts/python -m pip install -r pipeline/requirements.txt
-.venv/Scripts/python pipeline/slope_stats.py <HiRISE DTM GeoTIFF URL> 5
+.venv/Scripts/python pipeline/route.py     # route  -> web/public/data/route.geojson
+.venv/Scripts/python pipeline/layers.py    # hillshade + slope images -> web/public/data/
+.venv/Scripts/python -m pytest pipeline -q
 ```
 
 ## Data (so far)
 | Data | Source | Use |
 |---|---|---|
-| HiRISE DTM `DTEEC_006855_1750_007501_1750_A01` (~1 m/px) | NASA MRO HiRISE via [USGS Astrogeology STAC](https://stac.astrogeology.usgs.gov/) (`mro_hirise_socet_dtms`) | Elevation → slope → route |
+| HiRISE DTM `DTEEC_006855_1750_007501_1750_A01` (~1 m/px) | NASA MRO HiRISE via [USGS Astrogeology STAC](https://stac.astrogeology.usgs.gov/) (`mro_hirise_socet_dtms`) | Elevation → slope → route; hillshade and slope map layers |
 | Curiosity traverse | NASA [MMGIS MSL traverse](https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_traverse.json) | Context: where the rover has been |
 
 ## Credits

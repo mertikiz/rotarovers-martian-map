@@ -1,3 +1,33 @@
+:root {
+  color-scheme: light dark;
+  --ground: #f4f2ee;
+  --surface: rgba(255, 255, 255, 0.92);
+  --ink: #1c1b1a;
+  --muted: #5d5a55;
+  --map-bg: #2a2826;
+  --route: #0891b2;
+  --route-casing: #0b1220;
+  --stop-fill: #0b1220;
+  --stop-ink: #ffffff;
+  --badge-bg: #fef3c7;
+  --badge-ink: #78350f;
+  --error: #b91c1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #151413;
+    --surface: rgba(24, 23, 22, 0.92);
+    --ink: #f1efeb;
+    --muted: #a9a49c;
+    --map-bg: #0e0d0c;
+    --route: #22d3ee;
+    --badge-bg: #422006;
+    --badge-ink: #fde68a;
+    --error: #fca5a5;
+  }
+}
+
 html,
 body,
 #root {
@@ -7,4 +37,131 @@ body,
 
 body {
   font-family: system-ui, sans-serif;
+  background: var(--ground);
+  color: var(--ink);
+}
+
+.app,
+.map-shell {
+  height: 100%;
+}
+
+.map-shell {
+  position: relative;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  background: var(--map-bg);
+}
+
+.panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: min(320px, calc(100% - 72px)); /* leaves room for the zoom buttons on the right */
+  box-sizing: border-box;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--surface);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.panel h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.muted {
+  margin: 2px 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.badge {
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--badge-bg);
+  color: var(--badge-ink);
+  font-size: 0.8rem;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.85rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  margin: 0 0 14px;
+}
+
+.stats dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  align-self: center;
+}
+
+.stats dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.legend {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 18px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.swatch.line {
+  height: 4px;
+  background: var(--route);
+  box-shadow: 0 0 0 2px var(--route-casing);
+}
+
+.credit {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* OpenLayers controls on the right, away from the summary panel (.map raises specificity over ol.css) */
+.map .ol-zoom {
+  left: auto;
+  right: 12px;
+  top: 12px;
+}
+
+.map .ol-scale-line {
+  left: auto;
+  right: 12px;
+  bottom: 12px;
 }

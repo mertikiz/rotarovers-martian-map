@@ -1,0 +1,172 @@
+import { useEffect, useRef, useState } from 'react'
+import Map from 'ol/Map.js'
+import View from 'ol/View.js'
+import ImageLayer from 'ol/layer/Image.js'
+import VectorLayer from 'ol/layer/Vector.js'
+import ImageStatic from 'ol/source/ImageStatic.js'
+import VectorSource from 'ol/source/Vector.js'
+import GeoJSON from 'ol/format/GeoJSON.js'
+import ScaleLine from 'ol/control/ScaleLine.js'
+import { defaults as defaultControls } from 'ol/control/defaults.js'
+import { Circle, Fill, Stroke, Style, Text } from 'ol/style.js'
+import type { FeatureLike } from 'ol/Feature.js'
+import 'ol/ol.css'
+import { EQC, LONLAT } from './mars.ts'
+import { routeLengthM, type LonLat } from './geo.ts'
+
+type LayersMeta = {
+  dtm: string
+  extent: [number, number, number, number]
+  slope_classes: { min_deg: number; rgba: [number, number, number, number] }[]
+}
+
+type RouteFeature = { geometry: { type: string; coordinates: unknown }; properties: Record<string, unknown> }
+type RouteCollection = { properties: Record<string, unknown>; features: RouteFeature[] }
+
+type Summary = {
+  lengthM: number
+  pipelineLengthM: number
+  maxSlopeDeg: number
+  climbM: number
+  descentM: number
+  stops: number
+  sample: boolean
+  slopeLimitDeg: number
+  slopeClasses: LayersMeta['slope_classes']
+  dtm: string
+}
+
+function css(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
+function routeStyles(): (f: FeatureLike) => Style | Style[] {
+  const casing = new Style({ stroke: new Stroke({ color: css('--route-casing'), width: 7 }) })
+  const line = new Style({ stroke: new Stroke({ color: css('--route'), width: 3.5 }) })
+  return (f) => {
+    if (f.get('role') === 'route') return [casing, line]
+    return new Style({
+      image: new Circle({
+        radius: 11,
+        fill: new Fill({ color: css('--stop-fill') }),
+        stroke: new Stroke({ color: css('--route'), width: 2.5 }),
+      }),
+      text: new Text({
+        text: String(f.get('order')),
+        font: '600 12px system-ui, sans-serif',
+        fill: new Fill({ color: css('--stop-ink') }),
+      }),
+    })
+  }
+}
+
+export default function MapView() {
+  const target = useRef<HTMLDivElement>(null)
+  const [summary, setSummary] = useState<Summary | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let map: Map | undefined
+    let cancelled = false
+
+    Promise.all([
+      fetch('/data/layers.json').then((r) => r.json() as Promise<LayersMeta>),
+      fetch('/data/route.geojson').then((r) => r.json() as Promise<RouteCollection>),
+    ])
+      .then(([layers, route]) => {
+        if (cancelled || !target.current) return
+        const imageLayer = (url: string, opacity = 1) =>
+          new ImageLayer({
+            opacity,
+            source: new ImageStatic({ url, projection: EQC, imageExtent: layers.extent, interpolate: true }),
+          })
+        const routeSource = new VectorSource({
+          features: new GeoJSON({ dataProjection: LONLAT, featureProjection: EQC }).readFeatures(route),
+        })
+        map = new Map({
+          target: target.current,
+          controls: defaultControls().extend([new ScaleLine({ units: 'metric' })]),
+          layers: [
+            imageLayer('/data/hillshade.png'),
+            imageLayer('/data/slope.png', 0.85),
+            new VectorLayer({ source: routeSource, style: routeStyles() }),
+          ],
+          view: new View({ projection: EQC, extent: layers.extent, constrainOnlyCenter: true, maxZoom: 22 }),
+        })
+        // Keep the route clear of the summary panel when there is room beside it.
+        const besidePanel = target.current.clientWidth >= 720 ? 360 : 48
+        map.getView().fit(routeSource.getExtent() ?? layers.extent, { padding: [48, 48, 48, besidePanel] })
+        const line = route.features.find((f) => f.properties.role === 'route')!
+        const p = line.properties
+        setSummary({
+          lengthM: routeLengthM(line.geometry.coordinates as LonLat[]),
+          pipelineLengthM: Number(p.length_m),
+          maxSlopeDeg: Number(p.max_slope_deg),
+          climbM: Number(p.climb_m),
+          descentM: Number(p.descent_m),
+          stops: route.features.filter((f) => f.properties.role === 'stop').length,
+          sample: route.properties.sample === true,
+          slopeLimitDeg: Number(route.properties.slope_limit_deg),
+          slopeClasses: layers.slope_classes,
+          dtm: layers.dtm,
+        })
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError(String(e))
+      })
+
+    return () => {
+      cancelled = true
+      map?.setTarget(undefined)
+    }
+  }, [])
+
+  return (
+    <div className="map-shell">
+      <div ref={target} className="map" />
+      <aside className="panel" aria-label="Route summary">
+        <h1>RotaRovers Martian Map</h1>
+        <p className="muted">Planned Marswalk south of Gale crater</p>
+        {error && <p className="error">Could not load map data: {error}</p>}
+        {summary && (
+          <>
+            {summary.sample && (
+              <p className="badge">Placeholder stops: route is computed, stops are not science stops yet</p>
+            )}
+            <dl className="stats">
+              <dt>Distance</dt>
+              <dd>{(summary.lengthM / 1000).toFixed(2)} km</dd>
+              <dt>Steepest point</dt>
+              <dd>{summary.maxSlopeDeg.toFixed(1)}°</dd>
+              <dt>Climb / descent</dt>
+              <dd>
+                {Math.round(summary.climbM)} / {Math.round(summary.descentM)} m
+              </dd>
+              <dt>Stops</dt>
+              <dd>{summary.stops}</dd>
+            </dl>
+            <ul className="legend">
+              <li>
+                <span className="swatch line" /> Route avoiding slopes over {summary.slopeLimitDeg}°
+              </li>
+              {summary.slopeClasses.map((c, i) => {
+                const next = summary.slopeClasses[i + 1]
+                const [r, g, b, a] = c.rgba
+                return (
+                  <li key={c.min_deg}>
+                    <span className="swatch" style={{ background: `rgba(${r}, ${g}, ${b}, ${a / 255})` }} />
+                    {next ? `Slope ${c.min_deg}–${next.min_deg}°` : `Slope over ${c.min_deg}°: no-go`}
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="credit">
+              Elevation and slope: HiRISE DTM {summary.dtm} (NASA/JPL/University of Arizona, via USGS
+              Astrogeology), 5 m grid.
+            </p>
+          </>
+        )}
+      </aside>
+    </div>
+  )
+}
