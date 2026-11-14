@@ -440,3 +440,174 @@
   margin-block: 0.15rem 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* Elevation Profile Component */
+.walk-elevation-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.walk-elevation-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.walk-elevation-title {
+  margin-block: 0;
+}
+
+.walk-elevation-subtitle {
+  margin-block: 0.2rem 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.walk-elevation-live {
+  font-size: 0.9rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.walk-elevation-chart-wrap {
+  inline-size: 100%;
+  overflow: clip;
+}
+
+.walk-elevation-svg {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  max-block-size: 260px;
+  overflow: visible;
+}
+
+.walk-elev-grid {
+  stroke: var(--walk-border);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.walk-elev-axis-line {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.walk-elev-axis-text {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.walk-elev-axis-caption {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.walk-elev-area-full {
+  fill: var(--route);
+  fill-opacity: 0.08;
+}
+
+.walk-elev-line-full {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.75;
+  stroke-opacity: 0.55;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.walk-elev-area-walked {
+  fill: var(--route);
+  fill-opacity: 0.22;
+}
+
+.walk-elev-line-walked {
+  fill: none;
+  stroke: var(--route);
+  stroke-width: 2.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.walk-elev-turnaround-line {
+  stroke: var(--route);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.walk-elev-turnaround-label {
+  fill: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.walk-elev-marker-click {
+  cursor: pointer;
+}
+
+.walk-elev-base-marker {
+  fill: #ffffff;
+  stroke: var(--route-casing, #0b1220);
+  stroke-width: 2;
+}
+
+.walk-elev-base-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.walk-elev-stop-circle {
+  fill: var(--stop-fill, #0b1220);
+  stroke: var(--route);
+  stroke-width: 2;
+}
+
+.walk-elev-stop-circle--turnaround {
+  stroke-width: 2.5;
+}
+
+.walk-elev-stop-text {
+  fill: var(--stop-ink, #ffffff);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.walk-elev-cursor-line {
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 2;
+  stroke-opacity: 0.7;
+}
+
+.walk-elev-cursor-halo {
+  fill: var(--route);
+  fill-opacity: 0.25;
+  stroke: var(--route);
+  stroke-width: 2;
+}
+
+.walk-elev-cursor-dot {
+  fill: var(--ink);
+  stroke: var(--walk-surface);
+  stroke-width: 1.5;
+}
+
+.walk-elevation-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.walk-elev-meta-sub {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+

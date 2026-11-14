@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
+import ElevationProfile from './ElevationProfile'
 import {
   computeWalkSnapshot,
   DEFAULT_WALK_SPEED_MPS,
@@ -314,6 +315,13 @@ export function WalkView({
           </div>
         </div>
       </div>
+
+      {/* Route Elevation Profile */}
+      <ElevationProfile
+        route={parsedRoute}
+        snapshot={snapshot}
+        onSelectIndex={handleIndexChange}
+      />
 
       {/* 4 Core Walk Readout Cards */}
       <div className="walk-cards-grid">
