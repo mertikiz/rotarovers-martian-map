@@ -22,11 +22,14 @@ export interface RouteFeatureProperties {
   role: 'route'
   sample?: boolean
   length_m?: number
+  outbound_length_m?: number
   max_slope_deg?: number
   climb_m?: number
   descent_m?: number
   /** Out from the base through the stops and back along the same path (pipeline/route.py). */
   round_trip?: boolean
+  /** One DTM elevation in metres per route coordinate, in the same order. */
+  elevation_m?: number[]
 }
 
 export interface StopFeatureProperties {
@@ -80,6 +83,10 @@ export interface ResolvedStop {
 export interface ParsedRouteData {
   coordinates: LonLat[]
   cumulativeDistancesM: number[]
+  /** Elevation in metres at each route vertex (same length as coordinates), if present in GeoJSON. */
+  elevationsM?: number[]
+  minElevationM?: number
+  maxElevationM?: number
   totalDistanceM: number
   reportedLengthM?: number
   maxSlopeDeg?: number
@@ -97,6 +104,7 @@ export interface ParsedRouteData {
 export interface WalkSnapshot {
   currentIndex: number
   currentCoord: LonLat
+  currentElevationM?: number
   walkedDistanceM: number
   remainingDistanceM: number
   progressPercent: number
@@ -164,6 +172,33 @@ export function parseRouteGeoJSON(geojson: RouteFeatureCollection): ParsedRouteD
 
   const totalDistanceM = cumulativeDistancesM[cumulativeDistancesM.length - 1]
   const routeProps = routeFeature.properties as RouteFeatureProperties
+  const isRoundTrip = routeProps.round_trip === true
+
+  let elevationsM: number[] | undefined
+  let minElevationM: number | undefined
+  let maxElevationM: number | undefined
+
+  if (
+    Array.isArray(routeProps.elevation_m) &&
+    routeProps.elevation_m.length === coordinates.length &&
+    routeProps.elevation_m.every((v) => typeof v === 'number' && Number.isFinite(v))
+  ) {
+    elevationsM = routeProps.elevation_m
+    let minE = Infinity
+    let maxE = -Infinity
+    for (const e of elevationsM) {
+      if (e < minE) minE = e
+      if (e > maxE) maxE = e
+    }
+    minElevationM = minE
+    maxElevationM = maxE
+  }
+
+  // On a round-trip route the second half retraces the outbound vertices in reverse.
+  // Snap stops along the outbound leg so stop markers sit on the outbound half of the profile.
+  const searchLimit = isRoundTrip
+    ? Math.floor((coordinates.length - 1) / 2) + 1
+    : coordinates.length
 
   const rawStops = geojson.features.filter(
     (f) => f.geometry.type === 'Point' && f.properties?.role === 'stop',
@@ -177,7 +212,7 @@ export function parseRouteGeoJSON(geojson: RouteFeatureCollection): ParsedRouteD
       // Find nearest route vertex using Mars sphere distance
       let bestIdx = 0
       let bestDist = Infinity
-      for (let i = 0; i < coordinates.length; i++) {
+      for (let i = 0; i < searchLimit; i++) {
         const d = marsDistanceM(coords, coordinates[i])
         if (d < bestDist) {
           bestDist = d
@@ -209,6 +244,9 @@ export function parseRouteGeoJSON(geojson: RouteFeatureCollection): ParsedRouteD
   return {
     coordinates,
     cumulativeDistancesM,
+    elevationsM,
+    minElevationM,
+    maxElevationM,
     totalDistanceM,
     reportedLengthM:
       typeof routeProps.length_m === 'number' ? routeProps.length_m : undefined,
@@ -218,7 +256,7 @@ export function parseRouteGeoJSON(geojson: RouteFeatureCollection): ParsedRouteD
     descentM: typeof routeProps.descent_m === 'number' ? routeProps.descent_m : undefined,
     stops,
     isSample,
-    isRoundTrip: routeProps.round_trip === true,
+    isRoundTrip,
     sampleNote: colProps.sample_note ?? colProps.note,
     dtm: colProps.dtm,
     slopeLimitDeg: colProps.slope_limit_deg,
@@ -237,6 +275,7 @@ export function computeWalkSnapshot(
   const maxIndex = route.coordinates.length - 1
   const currentIndex = Math.max(0, Math.min(maxIndex, Math.round(index)))
   const currentCoord = route.coordinates[currentIndex]
+  const currentElevationM = route.elevationsM?.[currentIndex]
   const walkedDistanceM = route.cumulativeDistancesM[currentIndex]
   const totalDistanceM = route.totalDistanceM
   const remainingDistanceM = Math.max(0, totalDistanceM - walkedDistanceM)
@@ -282,6 +321,7 @@ export function computeWalkSnapshot(
   return {
     currentIndex,
     currentCoord,
+    currentElevationM,
     walkedDistanceM,
     remainingDistanceM,
     progressPercent,
