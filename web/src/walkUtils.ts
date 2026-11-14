@@ -1,6 +1,7 @@
 import { getDistance } from 'ol/sphere'
+import { MARS_RADIUS_M } from './geo.ts'
 
-export const MARS_RADIUS_M = 3_396_190
+export { MARS_RADIUS_M }
 
 /**
  * Default assumed EVA walking speed on Mars in m/s (~2.88 km/h).
@@ -24,6 +25,8 @@ export interface RouteFeatureProperties {
   max_slope_deg?: number
   climb_m?: number
   descent_m?: number
+  /** Out from the base through the stops and back along the same path (pipeline/route.py). */
+  round_trip?: boolean
 }
 
 export interface StopFeatureProperties {
@@ -84,6 +87,7 @@ export interface ParsedRouteData {
   descentM?: number
   stops: ResolvedStop[]
   isSample: boolean
+  isRoundTrip: boolean
   sampleNote?: string
   dtm?: string
   slopeLimitDeg?: number
@@ -214,6 +218,7 @@ export function parseRouteGeoJSON(geojson: RouteFeatureCollection): ParsedRouteD
     descentM: typeof routeProps.descent_m === 'number' ? routeProps.descent_m : undefined,
     stops,
     isSample,
+    isRoundTrip: routeProps.round_trip === true,
     sampleNote: colProps.sample_note ?? colProps.note,
     dtm: colProps.dtm,
     slopeLimitDeg: colProps.slope_limit_deg,

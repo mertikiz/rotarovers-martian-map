@@ -5,7 +5,6 @@ import {
   formatDistance,
   formatDuration,
   formatLonLat,
-  MARS_RADIUS_M,
   parseRouteGeoJSON,
   type ParsedRouteData,
   type RouteFeatureCollection,
@@ -28,24 +27,13 @@ export interface WalkViewProps {
   onPositionChange?: (coord: [number, number], index: number) => void
 }
 
-const ROUTE_SOURCES = [
-  {
-    label: 'Computed DTM Route (/data/route.geojson)',
-    url: '/data/route.geojson',
-  },
-  {
-    label: 'Sample Route (/sample/route-sample.geojson)',
-    url: '/sample/route-sample.geojson',
-  },
-] as const
-
 export function WalkView({
   routeData,
   initialUrl = '/data/route.geojson',
   onPositionChange,
 }: WalkViewProps) {
   const sliderId = useId()
-  const [sourceUrl, setSourceUrl] = useState<string>(initialUrl)
+  const sourceUrl = initialUrl
   const [fetchedGeoJSON, setFetchedGeoJSON] = useState<RouteFeatureCollection | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(!routeData)
@@ -116,14 +104,6 @@ export function WalkView({
     }
   }, [snapshot, onPositionChange])
 
-  const handleSourceSwitch = (url: string) => {
-    if (url === sourceUrl) return
-    setIsLoading(true)
-    setLoadError(null)
-    setCurrentIndex(0)
-    setSourceUrl(url)
-  }
-
   if (effectiveLoading) {
     return (
       <section className="walk-view" aria-busy="true">
@@ -137,20 +117,6 @@ export function WalkView({
       <section className="walk-view" role="alert">
         <h2>Unable to load Marswalk route</h2>
         <p>{effectiveError ?? 'Unknown route parsing error.'}</p>
-        {!routeData && (
-          <div className="walk-source-switcher">
-            {ROUTE_SOURCES.map((src) => (
-              <button
-                key={src.url}
-                type="button"
-                className="walk-btn"
-                onClick={() => handleSourceSwitch(src.url)}
-              >
-                Try {src.label}
-              </button>
-            ))}
-          </div>
-        )}
       </section>
     )
   }
@@ -165,6 +131,8 @@ export function WalkView({
     setCurrentIndex(clamped)
   }
 
+  const returning = parsedRoute.isRoundTrip && snapshot.isPastTurnaround
+
   const prevStop = [...parsedRoute.stops]
     .reverse()
     .find((s) => s.routeIndex < snapshot.currentIndex)
@@ -178,26 +146,9 @@ export function WalkView({
         <div className="walk-title-group">
           <h2 className="walk-title">Marswalk Traverse View</h2>
           <p className="walk-subtitle">
-            Gale crater south study area · Mars sphere radius{' '}
-            {MARS_RADIUS_M.toLocaleString('en-US')} m
+            What the astronaut follows on the walk. No GPS here: move the slider to simulate progress.
           </p>
         </div>
-
-        {!routeData && (
-          <div className="walk-source-switcher" role="group" aria-label="Route dataset">
-            <span className="walk-source-label">Dataset:</span>
-            {ROUTE_SOURCES.map((src) => (
-              <button
-                key={src.url}
-                type="button"
-                className={`walk-btn ${sourceUrl === src.url ? 'walk-btn--active' : ''}`}
-                onClick={() => handleSourceSwitch(src.url)}
-              >
-                {src.url.includes('sample') ? 'Sample (4 pts)' : 'DTM Route (~1000 pts)'}
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
       {parsedRoute.isSample && (
@@ -207,7 +158,6 @@ export function WalkView({
             {parsedRoute.sampleNote ??
               'This file contains sample or placeholder data for development.'}
           </span>
-          <span>Points: {parsedRoute.coordinates.length}</span>
         </div>
       )}
 
@@ -218,16 +168,26 @@ export function WalkView({
         </div>
       )}
 
-      {/* Turnaround status banner */}
+      {/* Turnaround status banner. On a round trip the turnaround is the last stop, so being past it means
+          the crew is on the planned way back, not over budget. */}
       <div
         className={`walk-banner ${
-          snapshot.isPastTurnaround
+          snapshot.isPastTurnaround && !returning
             ? 'walk-banner--turnaround-warn'
             : 'walk-banner--turnaround-ok'
         }`}
         role="status"
       >
-        {snapshot.isPastTurnaround ? (
+        {returning ? (
+          snapshot.remainingDistanceM > 0.5 ? (
+            <span>
+              Returning to base along the same path: {formatDistance(snapshot.remainingDistanceM)} (
+              {formatDuration(snapshot.remainingTimeSec)}) to go.
+            </span>
+          ) : (
+            <span>Back at base. Walk complete.</span>
+          )
+        ) : snapshot.isPastTurnaround ? (
           <span>
             TURNAROUND POINT PASSED: You have exceeded 50% of the planned walk duration (
             {formatDistance( Math.abs(snapshot.distanceToTurnaroundM) )} past half-way
@@ -253,7 +213,6 @@ export function WalkView({
             Simulated Astronaut Position Along Route
           </label>
           <span className="walk-slider-readout">
-            Point {snapshot.currentIndex + 1} / {parsedRoute.coordinates.length} ·{' '}
             {formatDistance(snapshot.walkedDistanceM)} /{' '}
             {formatDistance(parsedRoute.totalDistanceM)} (
             {snapshot.progressPercent.toFixed(1)}%)
@@ -297,7 +256,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === 0}
               onClick={() => handleIndexChange(snapshot.currentIndex - bigStep)}
             >
-              −{bigStep} pts
+              Back 5%
             </button>
             <button
               type="button"
@@ -305,7 +264,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === 0}
               onClick={() => handleIndexChange(snapshot.currentIndex - 1)}
             >
-              −1 pt
+              Step back
             </button>
             <button
               type="button"
@@ -313,7 +272,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === maxIndex}
               onClick={() => handleIndexChange(snapshot.currentIndex + 1)}
             >
-              +1 pt
+              Step forward
             </button>
             <button
               type="button"
@@ -321,7 +280,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === maxIndex}
               onClick={() => handleIndexChange(snapshot.currentIndex + bigStep)}
             >
-              +{bigStep} pts
+              Forward 5%
             </button>
             <button
               type="button"
@@ -377,7 +336,7 @@ export function WalkView({
 
         {/* 2. Next stop and distance to it */}
         <article className="walk-card">
-          <h3 className="walk-card-label">2. Next Science Stop</h3>
+          <h3 className="walk-card-label">2. Next Stop</h3>
           <div className="walk-card-main">
             {snapshot.nextStop && snapshot.distanceToNextStopM !== null ? (
               <>
@@ -388,6 +347,19 @@ export function WalkView({
                   {formatDistance(snapshot.distanceToNextStopM)} ahead · ETA{' '}
                   {formatDuration(snapshot.timeToNextStopSec ?? 0)}
                 </p>
+              </>
+            ) : parsedRoute.isRoundTrip && snapshot.remainingDistanceM > 0.5 ? (
+              <>
+                <p className="walk-card-value">Base</p>
+                <p className="walk-card-sub">
+                  {formatDistance(snapshot.remainingDistanceM)} ahead · ETA{' '}
+                  {formatDuration(snapshot.remainingTimeSec)}
+                </p>
+              </>
+            ) : parsedRoute.isRoundTrip ? (
+              <>
+                <p className="walk-card-value">Back at Base</p>
+                <p className="walk-card-sub">All planned stops visited</p>
               </>
             ) : (
               <>
@@ -420,7 +392,7 @@ export function WalkView({
 
         {/* 4. Turnaround point */}
         <article
-          className={`walk-card ${snapshot.isPastTurnaround ? 'walk-card--alert' : ''}`}
+          className={`walk-card ${snapshot.isPastTurnaround && !returning ? 'walk-card--alert' : ''}`}
         >
           <h3 className="walk-card-label">4. Turnaround Point (50% Budget)</h3>
           <div className="walk-card-main">
@@ -440,6 +412,7 @@ export function WalkView({
           </div>
           <p className="walk-card-footer">
             Half-duration mark of total {formatDuration(snapshot.totalTimeSec)} walk
+            {parsedRoute.isRoundTrip ? ': the last stop, where the walk turns back' : ''}
           </p>
         </article>
       </div>
@@ -501,19 +474,13 @@ export function WalkView({
           <h3 className="walk-panel-title">Route &amp; Terrain Parameters</h3>
           <dl className="walk-meta-list">
             <div className="walk-meta-item">
-              <dt className="walk-meta-term">Computed Length (Web)</dt>
+              <dt className="walk-meta-term">
+                {parsedRoute.isRoundTrip ? 'Round-trip Length' : 'Route Length'}
+              </dt>
               <dd className="walk-meta-desc">
                 {formatDistance(parsedRoute.totalDistanceM)}
               </dd>
             </div>
-            {parsedRoute.reportedLengthM !== undefined && (
-              <div className="walk-meta-item">
-                <dt className="walk-meta-term">Pipeline Length (GeoJSON)</dt>
-                <dd className="walk-meta-desc">
-                  {formatDistance(parsedRoute.reportedLengthM)}
-                </dd>
-              </div>
-            )}
             {parsedRoute.maxSlopeDeg !== undefined && (
               <div className="walk-meta-item">
                 <dt className="walk-meta-term">Max Route Slope</dt>
@@ -532,12 +499,6 @@ export function WalkView({
                 </dd>
               </div>
             )}
-            <div className="walk-meta-item">
-              <dt className="walk-meta-term">Route Vertices</dt>
-              <dd className="walk-meta-desc">
-                {parsedRoute.coordinates.length.toLocaleString('en-US')} pts
-              </dd>
-            </div>
             <div className="walk-meta-item">
               <dt className="walk-meta-term">Assumed Walk Speed</dt>
               <dd className="walk-meta-desc">
