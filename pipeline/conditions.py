@@ -70,7 +70,8 @@ def latest_insight():
                 sol=int(sol), first_utc=s["First_UTC"], last_utc=s["Last_UTC"],
                 air_temp_min_c=s["AT"]["mn"], air_temp_max_c=s["AT"]["mx"],
                 wind_avg_mps=s["HWS"]["av"], wind_max_mps=s["HWS"]["mx"], pressure_avg_pa=s["PRE"]["av"],
-                source_url=INSIGHT_URL.split("?")[0],
+                # NASA's public demo key, so the link opens the same data for anyone (a bare URL returns 403).
+                source_url=INSIGHT_URL + "DEMO_KEY",
                 note="Last sols published by the InSight weather service, Elysium Planitia, 2020.",
             )
     raise SystemExit("No InSight sol with temperature, wind and pressure.")
