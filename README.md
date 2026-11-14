@@ -3,7 +3,7 @@
 Team **RotaRovers** · 2026 NASA Space Apps Challenge (Universal Event) · Challenge:
 [Interplanetary Survival Guide: Martian Map](https://www.spaceappschallenge.org/2026/challenges/interplanetary-survival-guide-martian-map/)
 
-> Work in progress during the hackathon (Nov 14–15, 2026).
+> Work in progress during the hackathon (Nov 14–15, 2026). Live: https://rotarovers-martian-map.pages.dev
 
 A map a Mars astronaut uses **before a Marswalk to plan it** and **during the walk to follow it**: a route computed from
 NASA terrain data that keeps the crew on walkable slopes while reaching stops of scientific interest for past
