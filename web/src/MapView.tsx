@@ -10,7 +10,9 @@ import ScaleLine from 'ol/control/ScaleLine.js'
 import { defaults as defaultControls } from 'ol/control/defaults.js'
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style.js'
 import type { FeatureLike } from 'ol/Feature.js'
-import type Point from 'ol/geom/Point.js'
+import Feature from 'ol/Feature.js'
+import Point from 'ol/geom/Point.js'
+import { transform } from 'ol/proj.js'
 import 'ol/ol.css'
 import { EQC, LONLAT } from './mars.ts'
 import { routeLengthM, type LonLat } from './geo.ts'
@@ -70,10 +72,23 @@ function routeStyles(selected: { current: number | null }): (f: FeatureLike) => 
   }
 }
 
-export default function MapView() {
+/** Simulated astronaut position from the walk view: a white dot ringed in the route casing colour. */
+function walkerStyle(): Style {
+  return new Style({
+    zIndex: 3,
+    image: new Circle({
+      radius: 8,
+      fill: new Fill({ color: '#ffffff' }),
+      stroke: new Stroke({ color: css('--route-casing'), width: 3 }),
+    }),
+  })
+}
+
+export default function MapView({ walker = null }: { walker?: LonLat | null }) {
   const target = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const routeLayer = useRef<VectorLayer | null>(null)
+  const walkerFeature = useRef(new Feature<Point>())
   const selectedRef = useRef<number | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -101,7 +116,12 @@ export default function MapView() {
         map = new Map({
           target: target.current,
           controls: defaultControls().extend([new ScaleLine({ units: 'metric' })]),
-          layers: [imageLayer('/data/hillshade.png'), imageLayer('/data/slope.png', 0.85), vector],
+          layers: [
+            imageLayer('/data/hillshade.png'),
+            imageLayer('/data/slope.png', 0.85),
+            vector,
+            new VectorLayer({ source: new VectorSource({ features: [walkerFeature.current] }), style: walkerStyle() }),
+          ],
           view: new View({ projection: EQC, extent: layers.extent, constrainOnlyCenter: true, maxZoom: 22 }),
         })
         // Keep the route clear of the summary panel when there is room beside it.
@@ -153,6 +173,10 @@ export default function MapView() {
       routeLayer.current = null
     }
   }, [])
+
+  useEffect(() => {
+    walkerFeature.current.setGeometry(walker ? new Point(transform(walker, LONLAT, EQC)) : undefined)
+  }, [walker])
 
   // Redraw the stop highlight and bring the selected stop into view if it is off screen.
   useEffect(() => {

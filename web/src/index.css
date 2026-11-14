@@ -45,13 +45,11 @@ body {
   color: var(--ink);
 }
 
-.app,
-.map-shell {
-  height: 100%;
-}
-
+/* Map fills the first screen; the walk view follows below it. */
 .map-shell {
   position: relative;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .map {
