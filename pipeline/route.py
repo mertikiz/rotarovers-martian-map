@@ -163,11 +163,15 @@ def build_route(cell_m=5.0, limit_deg=20.0, snap_m=SNAP_MAX_M):
         if not leg or tuple(leg[0]) != a:
             raise SystemExit(f"No walkable route between stops {sa['order']} and {sb['order']}.")
         path.extend(tuple(p) for p in leg[1:])
+    # Round trip: the base is at the first stop, and the crew walks back along the same safe path.
+    outbound_points = len(path)
+    path = path + path[-2::-1]
 
     xs, ys = rasterio.transform.xy(transform, [p[0] for p in path], [p[1] for p in path])
     lons, lats = TO_LONLAT.transform(np.asarray(xs), np.asarray(ys))
     coords = [[round(float(lo), 7), round(float(la), 7)] for lo, la in zip(lons, lats)]
     length = sum(ground_distance_m(*coords[i], *coords[i + 1]) for i in range(len(coords) - 1))
+    outbound = sum(ground_distance_m(*coords[i], *coords[i + 1]) for i in range(outbound_points - 1))
     elev = [float(z[p]) for p in path]
     climb = float(np.sum(np.clip(np.diff(elev), 0, None)))
     descent = float(-np.sum(np.clip(np.diff(elev), None, 0)))
@@ -182,8 +186,13 @@ def build_route(cell_m=5.0, limit_deg=20.0, snap_m=SNAP_MAX_M):
                                              "not science stops.")
     features = [dict(type="Feature", geometry=dict(type="LineString", coordinates=coords),
                      properties=dict(role="route", length_m=round(length, 1), max_slope_deg=round(max_slope, 2),
-                                     climb_m=round(climb, 1), descent_m=round(descent, 1),
+                                     climb_m=round(climb, 1), descent_m=round(descent, 1), round_trip=True,
+                                     outbound_length_m=round(outbound, 1),
                                      **({"sample": True} if is_sample else {})))]
+    base = dict(role="base", name="Base: start and end of the walk, next to stop 1")
+    if is_sample:
+        base["sample"] = True
+    features.append(dict(type="Feature", geometry=dict(type="Point", coordinates=coords[0]), properties=base))
     for s, c in zip(stops, stop_coords):
         props = dict(role="stop", order=s["order"], name=s["name"], snapped_m=s["snapped_m"],
                      why_habitability=s["why"], source_url=s["source_url"])
@@ -206,11 +215,14 @@ def main():
     args.out.write_text(json.dumps(fc, separators=(",", ":")), encoding="utf-8")
     r = fc["features"][0]["properties"]
     n = len(fc["features"][0]["geometry"]["coordinates"])
-    print(f"wrote {args.out.relative_to(ROOT)}: {n} points, {r['length_m']:.0f} m, max slope {r['max_slope_deg']:.1f} deg, "
+    print(f"wrote {args.out.relative_to(ROOT)}: {n} points, round trip {r['length_m']:.0f} m "
+          f"(out {r['outbound_length_m']:.0f} m), max slope {r['max_slope_deg']:.1f} deg, "
           f"climb {r['climb_m']:.0f} m, descent {r['descent_m']:.0f} m"
           + ("  [SAMPLE stops]" if fc["properties"].get("sample") else ""))
     for f in fc["features"][1:]:
         p = f["properties"]
+        if p["role"] != "stop":
+            continue
         print(f"  stop {p['order']} {p['name']}: {f['geometry']['coordinates']}, snapped {p['snapped_m']} m")
 
 

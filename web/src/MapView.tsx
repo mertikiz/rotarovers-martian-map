@@ -8,7 +8,7 @@ import VectorSource from 'ol/source/Vector.js'
 import GeoJSON from 'ol/format/GeoJSON.js'
 import ScaleLine from 'ol/control/ScaleLine.js'
 import { defaults as defaultControls } from 'ol/control/defaults.js'
-import { Circle, Fill, Stroke, Style, Text } from 'ol/style.js'
+import { Circle, Fill, RegularShape, Stroke, Style, Text } from 'ol/style.js'
 import type { FeatureLike } from 'ol/Feature.js'
 import Feature from 'ol/Feature.js'
 import Point from 'ol/geom/Point.js'
@@ -53,8 +53,21 @@ function hostOf(url: string): string {
 function routeStyles(selected: { current: number | null }): (f: FeatureLike) => Style | Style[] {
   const casing = new Style({ stroke: new Stroke({ color: css('--route-casing'), width: 7 }) })
   const line = new Style({ stroke: new Stroke({ color: css('--route'), width: 3.5 }) })
+  const base = new Style({
+    zIndex: 0,
+    image: new RegularShape({
+      points: 4,
+      radius: 21, // a square frame around stop 1's circle
+      angle: Math.PI / 4,
+      fill: new Fill({ color: '#ffffff' }),
+      stroke: new Stroke({ color: css('--route-casing'), width: 2.5 }),
+    }),
+    text: new Text({ text: 'B', font: '700 12px system-ui, sans-serif', offsetX: -20, offsetY: -14,
+      fill: new Fill({ color: '#ffffff' }), stroke: new Stroke({ color: css('--route-casing'), width: 3 }) }),
+  })
   return (f) => {
     if (f.get('role') === 'route') return [casing, line]
+    if (f.get('role') === 'base') return base
     const on = f.get('order') === selected.current
     return new Style({
       zIndex: on ? 2 : 1,
@@ -72,16 +85,12 @@ function routeStyles(selected: { current: number | null }): (f: FeatureLike) => 
   }
 }
 
-/** Simulated astronaut position from the walk view: a white dot ringed in the route casing colour. */
-function walkerStyle(): Style {
-  return new Style({
-    zIndex: 3,
-    image: new Circle({
-      radius: 8,
-      fill: new Fill({ color: '#ffffff' }),
-      stroke: new Stroke({ color: css('--route-casing'), width: 3 }),
-    }),
-  })
+/** Simulated astronaut position from the walk view: a hollow white ring with a dark edge, wide enough to
+ * circle a stop marker, so the stop's number stays readable when the walker stands on it. */
+function walkerStyle(): Style[] {
+  const ring = (color: string, width: number) =>
+    new Style({ image: new Circle({ radius: 16, stroke: new Stroke({ color, width }) }) })
+  return [ring(css('--route-casing'), 7), ring('#ffffff', 3.5)]
 }
 
 export default function MapView({ walker = null }: { walker?: LonLat | null }) {
@@ -212,7 +221,7 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
               <p className="badge">Placeholder stops: route is computed, stops are not science stops yet</p>
             )}
             <dl className="stats">
-              <dt>Distance</dt>
+              <dt>Round trip</dt>
               <dd>{(summary.lengthM / 1000).toFixed(2)} km</dd>
               <dt>Steepest point</dt>
               <dd>{summary.maxSlopeDeg.toFixed(1)}°</dd>
@@ -251,7 +260,10 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
             </ol>
             <ul className="legend">
               <li>
-                <span className="swatch line" /> Route avoiding slopes over {summary.slopeLimitDeg}°
+                <span className="swatch line" /> Route avoiding slopes over {summary.slopeLimitDeg}°, out and back
+              </li>
+              <li>
+                <span className="swatch base" /> Base (B): start and end, next to stop 1
               </li>
               {summary.slopeClasses.map((c, i) => {
                 const next = summary.slopeClasses[i + 1]

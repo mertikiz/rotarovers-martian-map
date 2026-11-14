@@ -98,12 +98,22 @@ def test_length_matches_the_mars_radius_sum(fc):
     assert abs(total - _route(fc)["properties"]["length_m"]) < 0.5
 
 
-def test_stops_lie_on_the_route_in_order(fc):
+def test_stops_lie_on_the_outbound_leg_in_order(fc):
     coords = [tuple(c) for c in _route(fc)["geometry"]["coordinates"]]
     stops = sorted((f for f in fc["features"] if f["properties"]["role"] == "stop"),
                    key=lambda f: f["properties"]["order"])
     idx = [coords.index(tuple(f["geometry"]["coordinates"])) for f in stops]
-    assert idx == sorted(idx) and idx[0] == 0 and idx[-1] == len(coords) - 1
+    assert idx == sorted(idx) and idx[0] == 0 and idx[-1] == len(coords) // 2  # last stop = turnaround
+
+
+def test_round_trip_returns_to_base_on_the_same_path(fc):
+    route = _route(fc)
+    coords = route["geometry"]["coordinates"]
+    base = next(f for f in fc["features"] if f["properties"]["role"] == "base")
+    assert route["properties"]["round_trip"] is True
+    assert coords[0] == coords[-1] == base["geometry"]["coordinates"]
+    assert coords == coords[::-1]  # the way back retraces the way out
+    assert abs(route["properties"]["length_m"] - 2 * route["properties"]["outbound_length_m"]) < 1.0
 
 
 def test_placeholder_stops_are_labelled_sample(fc):
