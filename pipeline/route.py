@@ -83,10 +83,12 @@ def walkable_areas(ok, cell_area_m2):
 
 
 def _read_csv(path):
-    with open(path, newline="", encoding="utf-8") as fh:
+    with open(path, newline="", encoding="utf-8-sig") as fh:  # -sig: a CSV saved by Excel starts with a BOM
         rows = [r for r in csv.DictReader(fh) if (r.get("lon_e") or "").strip()]
     rows.sort(key=lambda r: int(r["order"]))
-    return [dict(order=int(r["order"]), name=r["name"], lon=float(r["lon_e"]), lat=float(r["lat"])) for r in rows]
+    return [dict(order=int(r["order"]), name=r["name"].strip(), lon=float(r["lon_e"]), lat=float(r["lat"]),
+                 why=(r.get("why_habitability") or "").strip(), source_url=(r.get("source_url") or "").strip())
+            for r in rows]
 
 
 def read_stops():
@@ -183,7 +185,8 @@ def build_route(cell_m=5.0, limit_deg=20.0, snap_m=SNAP_MAX_M):
                                      climb_m=round(climb, 1), descent_m=round(descent, 1),
                                      **({"sample": True} if is_sample else {})))]
     for s, c in zip(stops, stop_coords):
-        props = dict(role="stop", order=s["order"], name=s["name"], snapped_m=s["snapped_m"])
+        props = dict(role="stop", order=s["order"], name=s["name"], snapped_m=s["snapped_m"],
+                     why_habitability=s["why"], source_url=s["source_url"])
         if is_sample:
             props["sample"] = True
         features.append(dict(type="Feature", geometry=dict(type="Point", coordinates=c), properties=props))

@@ -12,6 +12,8 @@
   --badge-bg: #fef3c7;
   --badge-ink: #78350f;
   --error: #b91c1c;
+  --hover: rgba(28, 27, 26, 0.06);
+  --link: #0e7490;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,6 +27,8 @@
     --badge-bg: #422006;
     --badge-ink: #fde68a;
     --error: #fca5a5;
+    --hover: rgba(241, 239, 235, 0.08);
+    --link: #67e8f9;
   }
 }
 
@@ -67,6 +71,87 @@ body {
   background: var(--surface);
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+}
+
+.section {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stops {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.stops button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stops button:hover,
+.stops button:focus-visible {
+  background: var(--hover);
+}
+
+.stops button:focus-visible {
+  outline: 2px solid var(--route);
+  outline-offset: -2px;
+}
+
+.num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--stop-fill);
+  color: var(--stop-ink);
+  box-shadow: 0 0 0 2px var(--route);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stops .open .num {
+  background: var(--route);
+  color: var(--stop-fill);
+  box-shadow: 0 0 0 2px var(--stop-fill);
+}
+
+.stop-detail {
+  padding: 2px 8px 10px 42px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.stop-detail p {
+  margin: 0 0 6px;
+}
+
+.stop-detail a {
+  color: var(--link);
 }
 
 .panel h1 {
