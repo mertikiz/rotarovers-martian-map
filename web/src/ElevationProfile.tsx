@@ -17,7 +17,8 @@ const PLOT_W = SVG_WIDTH - PAD_LEFT - PAD_RIGHT
 const PLOT_H = SVG_HEIGHT - PAD_TOP - PAD_BOTTOM
 
 function formatElev(metres: number): string {
-  return `${Math.round(metres)} m`
+  const m = Math.round(metres)
+  return `${m < 0 ? '−' : ''}${Math.abs(m)} m` // true minus sign, as in the rest of the app
 }
 
 export function ElevationProfile({
@@ -200,7 +201,7 @@ export function ElevationProfile({
                 textAnchor="end"
                 className="walk-elev-axis-text"
               >
-                {Math.round(tick.value)} m
+                {formatElev(tick.value)}
               </text>
             </g>
           ))}
