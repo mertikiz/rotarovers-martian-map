@@ -1,5 +1,5 @@
-# Data downloads (large, re-downloadable)
-data/
+# Data downloads (large, re-downloadable); only the top-level folder, not web/public/data
+/data/
 # Python
 .venv/
 venv/

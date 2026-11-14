@@ -1,0 +1,5 @@
+order,name,lon_e,lat,why_habitability,source_url,notes
+1,Placeholder A,137.225,-5.010,,,PLACEHOLDER for pipeline testing only; not a science stop
+2,Placeholder B,137.240,-5.030,,,PLACEHOLDER for pipeline testing only; not a science stop
+3,Placeholder C,137.250,-5.055,,,PLACEHOLDER for pipeline testing only; not a science stop
+4,Placeholder D,137.262,-5.090,,,PLACEHOLDER for pipeline testing only; not a science stop
