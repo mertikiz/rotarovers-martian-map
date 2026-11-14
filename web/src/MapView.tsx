@@ -14,6 +14,7 @@ import type Point from 'ol/geom/Point.js'
 import 'ol/ol.css'
 import { EQC, LONLAT } from './mars.ts'
 import { routeLengthM, type LonLat } from './geo.ts'
+import { safeHttpUrl } from './url.ts'
 
 type LayersMeta = {
   dtm: string
@@ -43,11 +44,7 @@ function css(name: string): string {
 }
 
 function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return url
-  }
+  return new URL(url).hostname.replace(/^www\./, '')
 }
 
 /** Route line plus numbered stops; the selected stop swaps to the accent fill (same swap as the stop list). */
@@ -136,7 +133,7 @@ export default function MapView() {
               order: Number(f.properties.order),
               name: String(f.properties.name),
               why: String(f.properties.why_habitability ?? ''),
-              sourceUrl: String(f.properties.source_url ?? ''),
+              sourceUrl: safeHttpUrl(String(f.properties.source_url ?? '')) ?? '',
             }))
             .sort((a, b) => a.order - b.order),
           sample: route.properties.sample === true,
