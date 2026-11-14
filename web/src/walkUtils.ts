@@ -4,10 +4,14 @@ import { MARS_RADIUS_M } from './geo.ts'
 export { MARS_RADIUS_M }
 
 /**
- * Default assumed EVA walking speed on Mars in m/s (~2.88 km/h).
- * Explicitly labelled as an assumption in the UI.
+ * Assumed EVA walking speed: 2 km/h, the level-terrain rate in NASA's Exploration EVA System Concept of Operations
+ * (EVA-EXP-0042 Rev B, 2020, PDF p. 95), which adds that crews are slower on harder terrain. Lunar, not Mars;
+ * labelled as an assumption in the UI.
  */
-export const DEFAULT_WALK_SPEED_MPS = 0.8
+export const DEFAULT_WALK_SPEED_KMH = 2
+export const DEFAULT_WALK_SPEED_MPS = DEFAULT_WALK_SPEED_KMH / 3.6
+/** Shown wherever the speed is stated, so every screen names the same source. */
+export const WALK_SPEED_NOTE = 'NASA lunar EVA level-terrain rate; slower on slopes'
 
 export const FOOTPRINT_BOUNDS = {
   minLon: 137.1716,

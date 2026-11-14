@@ -2,7 +2,9 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import ElevationProfile from './ElevationProfile'
 import {
   computeWalkSnapshot,
+  DEFAULT_WALK_SPEED_KMH,
   DEFAULT_WALK_SPEED_MPS,
+  WALK_SPEED_NOTE,
   formatDistance,
   formatDuration,
   formatLonLat,
@@ -125,7 +127,6 @@ export function WalkView({
   const maxIndex = parsedRoute.coordinates.length - 1
   // Adaptive step size for "+10% / -10%" jump buttons on ~1000-point or 4-point routes
   const bigStep = Math.max(1, Math.round(maxIndex * 0.05))
-  const speedKmh = (DEFAULT_WALK_SPEED_MPS * 3.6).toFixed(2)
 
   const handleIndexChange = (nextIdx: number) => {
     const clamped = Math.max(0, Math.min(maxIndex, nextIdx))
@@ -393,8 +394,7 @@ export function WalkView({
             </p>
           </div>
           <p className="walk-card-footer">
-            Assumption: constant walking speed {DEFAULT_WALK_SPEED_MPS} m/s ({speedKmh}{' '}
-            km/h)
+            Assumption: constant {DEFAULT_WALK_SPEED_KMH} km/h ({WALK_SPEED_NOTE})
           </p>
         </article>
 
@@ -510,7 +510,8 @@ export function WalkView({
             <div className="walk-meta-item">
               <dt className="walk-meta-term">Assumed Walk Speed</dt>
               <dd className="walk-meta-desc">
-                {DEFAULT_WALK_SPEED_MPS} m/s ({speedKmh} km/h)
+                {DEFAULT_WALK_SPEED_KMH} km/h ({DEFAULT_WALK_SPEED_MPS.toFixed(2)} m/s)
+                <span className="walk-elev-meta-sub"> · {WALK_SPEED_NOTE}</span>
               </dd>
             </div>
           </dl>

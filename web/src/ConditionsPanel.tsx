@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DEFAULT_WALK_SPEED_MPS, formatDuration } from './walkUtils.ts'
+import { DEFAULT_WALK_SPEED_KMH, DEFAULT_WALK_SPEED_MPS, formatDuration } from './walkUtils.ts'
 import { safeHttpUrl } from './url.ts'
 
 type Conditions = {
@@ -137,7 +137,7 @@ export default function ConditionsPanel() {
           </dl>
           {walkSec && daylightHours && (
             <p className="cond-walk">
-              The walk takes about {formatDuration(walkSec)} at the assumed {DEFAULT_WALK_SPEED_MPS} m/s, well inside
+              The walk takes about {formatDuration(walkSec)} at the assumed {DEFAULT_WALK_SPEED_KMH} km/h, well inside
               the roughly {daylightHours}-hour sunrise-to-sunset window.
             </p>
           )}
