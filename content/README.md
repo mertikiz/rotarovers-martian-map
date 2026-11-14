@@ -27,7 +27,8 @@ development; the real route is produced by the pipeline.
 `/data/route.geojson`). Same shape as above, plus:
 - route: a **round trip** (`round_trip: true`): out from the base through the stops in order, then back along the
   same path, so the turnaround point (half of the walk) is the last stop. `length_m` is the whole round trip (Mars
-  radius), `outbound_length_m` the way out; `max_slope_deg`, `climb_m`, `descent_m`; about one point every 5–7 m
+  radius), `outbound_length_m` the way out; `max_slope_deg`, `climb_m`, `descent_m`; about one point every 5–7 m;
+  `elevation_m`: one DTM elevation (metres, as stored in the DTM) per route coordinate, same order
 - base: one `Point` with `role: "base"`, the start and end of the walk, placed at stop 1
 - stop: `snapped_m` (how far the stop was moved onto walkable ground, at most 50 m), plus `why_habitability` and
   `source_url` copied from `content/stops.csv` (shown when a stop is selected on the map)

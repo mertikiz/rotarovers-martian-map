@@ -188,6 +188,7 @@ def build_route(cell_m=5.0, limit_deg=20.0, snap_m=SNAP_MAX_M):
                      properties=dict(role="route", length_m=round(length, 1), max_slope_deg=round(max_slope, 2),
                                      climb_m=round(climb, 1), descent_m=round(descent, 1), round_trip=True,
                                      outbound_length_m=round(outbound, 1),
+                                     elevation_m=[round(e, 1) for e in elev],  # one per coordinate
                                      **({"sample": True} if is_sample else {})))]
     base = dict(role="base", name="Base: start and end of the walk, next to stop 1")
     if is_sample:

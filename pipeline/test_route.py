@@ -106,6 +106,17 @@ def test_stops_lie_on_the_outbound_leg_in_order(fc):
     assert idx == sorted(idx) and idx[0] == 0 and idx[-1] == len(coords) // 2  # last stop = turnaround
 
 
+def test_elevation_matches_the_dtm_point_by_point(fc, grid):
+    z, t, _ = grid
+    route = _route(fc)
+    elev = route["properties"]["elevation_m"]
+    coords = route["geometry"]["coordinates"]
+    assert len(elev) == len(coords)
+    dtm = [z[c] for c in _cells(coords, t)]
+    assert max(abs(a - b) for a, b in zip(elev, dtm)) <= 0.05 + 1e-9
+    assert elev == elev[::-1]  # same path back, same heights
+
+
 def test_round_trip_returns_to_base_on_the_same_path(fc):
     route = _route(fc)
     coords = route["geometry"]["coordinates"]
