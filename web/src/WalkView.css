@@ -1,0 +1,457 @@
+:root {
+  color-scheme: dark light;
+  --walk-bg: #111318;
+  --walk-surface: #1b1f27;
+  --walk-surface-elevated: #232834;
+  --walk-border: #32394a;
+  --walk-text: #f3f4f6;
+  --walk-text-muted: #9ca3af;
+  --walk-accent: #e06d3b;
+  --walk-accent-strong: #f28a5c;
+  --walk-warning-bg: #3b2316;
+  --walk-warning-border: #e06d3b;
+  --walk-warning-text: #ffcfb8;
+  --walk-ok-bg: #162c24;
+  --walk-ok-border: #2e8b69;
+  --walk-ok-text: #a7f3d0;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --walk-bg: #f8fafc;
+    --walk-surface: #ffffff;
+    --walk-surface-elevated: #f1f5f9;
+    --walk-border: #cbd5e1;
+    --walk-text: #0f172a;
+    --walk-text-muted: #475569;
+    --walk-accent: #c2410c;
+    --walk-accent-strong: #ea580c;
+    --walk-warning-bg: #fff7ed;
+    --walk-warning-border: #ea580c;
+    --walk-warning-text: #9a3412;
+    --walk-ok-bg: #ecfdf5;
+    --walk-ok-border: #059669;
+    --walk-ok-text: #065f46;
+  }
+}
+
+.walk-view {
+  background-color: var(--walk-bg);
+  color: var(--walk-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  inline-size: 100%;
+  max-inline-size: 1040px;
+  margin-inline: auto;
+  padding-block: 1.5rem;
+  padding-inline: 1.25rem;
+  box-sizing: border-box;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.walk-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: safe center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block-end: 0.75rem;
+  border-block-end: 1px solid var(--walk-border);
+}
+
+.walk-title-group {
+  min-inline-size: 0;
+}
+
+.walk-title {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.25;
+}
+
+.walk-subtitle {
+  margin-block: 0.25rem 0;
+  color: var(--walk-text-muted);
+  font-size: 0.9rem;
+}
+
+.walk-source-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  flex-wrap: balance;
+  gap: 0.5rem;
+  align-items: safe center;
+}
+
+.walk-source-label {
+  font-size: 0.85rem;
+  color: var(--walk-text-muted);
+}
+
+.walk-btn {
+  appearance: none;
+  background-color: var(--walk-surface-elevated);
+  color: var(--walk-text);
+  border: 1px solid var(--walk-border);
+  border-radius: 6px;
+  padding-block: 0.45rem;
+  padding-inline: 0.8rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.walk-btn:hover:not(:disabled) {
+  border-color: var(--walk-accent);
+}
+
+.walk-btn:focus-visible {
+  outline: 2px solid var(--walk-accent);
+  outline-offset: 2px;
+}
+
+.walk-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.walk-btn--active {
+  background-color: var(--walk-accent);
+  border-color: var(--walk-accent);
+  color: #ffffff;
+}
+
+.walk-banner {
+  padding-block: 0.75rem;
+  padding-inline: 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: safe center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.walk-banner--sample {
+  background-color: var(--walk-warning-bg);
+  border: 1px solid var(--walk-warning-border);
+  color: var(--walk-warning-text);
+}
+
+.walk-banner--turnaround-warn {
+  background-color: var(--walk-warning-bg);
+  border: 2px solid var(--walk-warning-border);
+  color: var(--walk-warning-text);
+  font-weight: 600;
+}
+
+.walk-banner--turnaround-ok {
+  background-color: var(--walk-ok-bg);
+  border: 1px solid var(--walk-ok-border);
+  color: var(--walk-ok-text);
+}
+
+/* Slider Control Panel */
+.walk-controls-panel {
+  background-color: var(--walk-surface);
+  border: 1px solid var(--walk-border);
+  border-radius: 10px;
+  padding-block: 1.1rem;
+  padding-inline: 1.25rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.walk-slider-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.walk-slider-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.walk-slider-readout {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  color: var(--walk-text-muted);
+}
+
+/* Native accessible range slider styled per modern-web-guidance `slider` */
+.walk-range-slider {
+  --slider-track-size: 0.55rem;
+  --slider-thumb-size: 1.35rem;
+  --slider-track-radius: 999px;
+  --slider-thumb-radius: 50%;
+  --slider-track-color: var(--walk-border);
+  --slider-fill-color: var(--walk-accent);
+  --slider-thumb-color: var(--walk-accent-strong);
+  --slider-direction: to right;
+
+  --attr-min: attr(min type(<number>), 0);
+  --attr-max: attr(max type(<number>), 100);
+  --control-value: attr(value type(<number>), 0);
+  --slider-progress: calc(
+    progress(var(--control-value), var(--attr-min), var(--attr-max)) * 100%
+  );
+
+  appearance: none;
+  inline-size: 100%;
+  block-size: 2.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.walk-range-slider:dir(rtl) {
+  --slider-direction: to left;
+}
+
+@supports not (opacity: progress(1, 0, 100)) {
+  .walk-range-slider {
+    --slider-progress: calc(
+      (var(--control-value) - var(--attr-min)) /
+      max(1, (var(--attr-max) - var(--attr-min))) * 100%
+    );
+  }
+}
+
+.walk-range-slider::-webkit-slider-runnable-track {
+  block-size: var(--slider-track-size);
+  border: 0;
+  border-radius: var(--slider-track-radius);
+  background: linear-gradient(
+    var(--slider-direction),
+    var(--slider-fill-color) var(--slider-progress),
+    var(--slider-track-color) var(--slider-progress)
+  );
+}
+
+.walk-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  inline-size: var(--slider-thumb-size);
+  block-size: var(--slider-thumb-size);
+  margin-block-start: calc(
+    (var(--slider-track-size) - var(--slider-thumb-size)) / 2
+  );
+  border: 2px solid var(--walk-surface);
+  border-radius: var(--slider-thumb-radius);
+  background: var(--slider-thumb-color);
+}
+
+.walk-range-slider::-moz-range-track {
+  block-size: var(--slider-track-size);
+  border: 0;
+  border-radius: var(--slider-track-radius);
+  background: var(--slider-track-color);
+}
+
+.walk-range-slider::-moz-range-progress {
+  block-size: var(--slider-track-size);
+  border-radius: var(--slider-track-radius);
+  background: var(--slider-fill-color);
+}
+
+.walk-range-slider::-moz-range-thumb {
+  inline-size: var(--slider-thumb-size);
+  block-size: var(--slider-thumb-size);
+  border: 2px solid var(--walk-surface);
+  border-radius: var(--slider-thumb-radius);
+  background: var(--slider-thumb-color);
+}
+
+.walk-range-slider:focus-visible {
+  outline: 2px solid var(--walk-accent);
+  outline-offset: 4px;
+}
+
+.walk-step-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  flex-wrap: balance;
+  gap: 0.5rem;
+  align-items: safe center;
+  justify-content: space-between;
+}
+
+.walk-step-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* 4 Primary Status Cards using CSS Grid + Subgrid */
+.walk-cards-grid {
+   inline-size: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-rows: auto 1fr auto;
+  gap: 1rem;
+}
+
+.walk-card {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-rows: subgrid;
+  background-color: var(--walk-surface);
+  border: 1px solid var(--walk-border);
+  border-radius: 10px;
+  padding-block: 1rem;
+  padding-inline: 1.1rem;
+  gap: 0.5rem;
+  min-inline-size: 0;
+}
+
+.walk-card--alert {
+  border-color: var(--walk-warning-border);
+}
+
+.walk-card-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--walk-text-muted);
+  margin: 0;
+}
+
+.walk-card-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  min-inline-size: 0;
+}
+
+.walk-card-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  word-break: break-word;
+}
+
+.walk-card-sub {
+  font-size: 0.88rem;
+  color: var(--walk-text-muted);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.walk-card-footer {
+  font-size: 0.78rem;
+  color: var(--walk-text-muted);
+  padding-block-start: 0.4rem;
+  border-block-start: 1px solid var(--walk-border);
+  margin: 0;
+}
+
+/* Secondary Details: Terrain Summary & Stops List */
+.walk-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.walk-panel {
+  background-color: var(--walk-surface);
+  border: 1px solid var(--walk-border);
+  border-radius: 10px;
+  padding-block: 1rem;
+  padding-inline: 1.15rem;
+  min-inline-size: 0;
+}
+
+.walk-panel-title {
+  margin-block: 0 0.75rem;
+  font-size: 1rem;
+}
+
+.walk-stops-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.walk-stop-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: safe center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-block: 0.55rem;
+  padding-inline: 0.75rem;
+  border-radius: 6px;
+  background-color: var(--walk-surface-elevated);
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+}
+
+.walk-stop-item--reached {
+  opacity: 0.7;
+}
+
+.walk-stop-item--next {
+  border-color: var(--walk-accent);
+}
+
+.walk-stop-item--current {
+  border-color: var(--walk-ok-border);
+  background-color: var(--walk-ok-bg);
+  color: var(--walk-ok-text);
+}
+
+.walk-stop-jump-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--walk-border);
+  color: inherit;
+  border-radius: 4px;
+  padding-block: 0.2rem;
+  padding-inline: 0.5rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.walk-stop-jump-btn:hover {
+  border-color: var(--walk-accent);
+}
+
+.walk-meta-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.walk-meta-item {
+  background-color: var(--walk-surface-elevated);
+  padding-block: 0.55rem;
+  padding-inline: 0.75rem;
+  border-radius: 6px;
+}
+
+.walk-meta-term {
+  font-size: 0.75rem;
+  color: var(--walk-text-muted);
+  margin: 0;
+}
+
+.walk-meta-desc {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-block: 0.15rem 0;
+  font-variant-numeric: tabular-nums;
+}
