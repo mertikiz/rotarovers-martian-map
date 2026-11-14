@@ -1,0 +1,14 @@
+{
+  "type": "FeatureCollection",
+  "properties": { "sample": true, "note": "SAMPLE DATA for development only. Not a computed route and not real stops." },
+  "features": [
+    { "type": "Feature", "properties": { "role": "route", "sample": true },
+      "geometry": { "type": "LineString", "coordinates": [[137.215, -5.060], [137.225, -5.070], [137.232, -5.085], [137.240, -5.095]] } },
+    { "type": "Feature", "properties": { "role": "stop", "order": 1, "name": "Sample stop 1", "sample": true },
+      "geometry": { "type": "Point", "coordinates": [137.215, -5.060] } },
+    { "type": "Feature", "properties": { "role": "stop", "order": 2, "name": "Sample stop 2", "sample": true },
+      "geometry": { "type": "Point", "coordinates": [137.232, -5.085] } },
+    { "type": "Feature", "properties": { "role": "stop", "order": 3, "name": "Sample stop 3", "sample": true },
+      "geometry": { "type": "Point", "coordinates": [137.240, -5.095] } }
+  ]
+}
