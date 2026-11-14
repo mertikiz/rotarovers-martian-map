@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import MapView from './MapView.tsx'
+import ConditionsPanel from './ConditionsPanel.tsx'
 import WalkView from './WalkView.tsx'
 import type { LonLat } from './geo.ts'
 
@@ -9,6 +10,7 @@ function App() {
   return (
     <main className="app">
       <MapView walker={walker} />
+      <ConditionsPanel />
       <WalkView onPositionChange={setWalker} />
     </main>
   )

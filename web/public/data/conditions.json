@@ -1,0 +1,53 @@
+{
+ "generated_utc": "2026-11-14T17:45Z",
+ "disclaimer": "Latest available measurements at other places and times. Not a forecast for the route.",
+ "rems": {
+  "sol": 4995,
+  "earth_date": "2026-08-25",
+  "solar_longitude_deg": 341.0,
+  "air_temp_min_c": -71.0,
+  "air_temp_max_c": -5.0,
+  "ground_temp_min_c": -84.0,
+  "ground_temp_max_c": 4.0,
+  "pressure_pa": 777.0,
+  "sky": "Sunny",
+  "uv_index": "Moderate",
+  "sunrise_local": "06:46",
+  "sunset_local": "18:51",
+  "source_url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+  "note": "REMS values via the Centro de Astrobiologia (CAB) outreach feed; CAB points to the PDS for scientific REMS data. Wind and humidity are not reported in this feed.",
+  "distance_to_base_km": 18.4,
+  "rover_position": {
+   "sol": 5073,
+   "lon": 137.388886,
+   "lat": -4.82602331,
+   "source_url": "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json"
+  }
+ },
+ "insight": {
+  "sol": 681,
+  "first_utc": "2020-10-25T22:29:51Z",
+  "last_utc": "2020-10-26T23:09:26Z",
+  "air_temp_min_c": -95.447,
+  "air_temp_max_c": -4.444,
+  "wind_avg_mps": 5.632,
+  "wind_max_mps": 18.577,
+  "pressure_avg_pa": 743.55,
+  "source_url": "https://api.nasa.gov/insight_weather/",
+  "note": "Last sols published by the InSight weather service, Elysium Planitia, 2020.",
+  "distance_to_base_km": 577.0,
+  "lander_lonlat": [
+   135.623447,
+   4.502384
+  ],
+  "lander_position_source": "https://doi.org/10.1029/2020EA001248"
+ },
+ "rad": {
+  "dose_equivalent_msv_per_day": 0.67,
+  "period": "August 2012 to June 2013",
+  "what": "Average galactic cosmic ray dose equivalent rate on the surface at Gale crater, measured by Curiosity's RAD. The rate varies from day to night with atmospheric shielding.",
+  "source_url": "https://www.swri.org/newsroom/press-releases/swri-scientists-publish-first-radiation-measurements-the-surface-of-mars",
+  "paper_doi": "https://doi.org/10.1126/science.1244797",
+  "distance_note": "Measured by Curiosity in Gale crater, about the same region as the walk."
+ }
+}

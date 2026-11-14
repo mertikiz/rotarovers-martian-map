@@ -28,6 +28,7 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r pipeline/requirements.txt
 .venv/Scripts/python pipeline/route.py     # route  -> web/public/data/route.geojson
 .venv/Scripts/python pipeline/layers.py    # hillshade + slope images -> web/public/data/
+.venv/Scripts/python pipeline/conditions.py  # latest REMS / InSight / RAD values -> web/public/data/conditions.json
 .venv/Scripts/python -m pytest pipeline -q
 ```
 
@@ -36,6 +37,11 @@ python -m venv .venv
 |---|---|---|
 | HiRISE DTM `DTEEC_006855_1750_007501_1750_A01` (~1 m/px) | NASA MRO HiRISE via [USGS Astrogeology STAC](https://stac.astrogeology.usgs.gov/) (`mro_hirise_socet_dtms`) | Elevation → slope → route; hillshade and slope map layers |
 | Curiosity traverse | NASA [MMGIS MSL traverse](https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_traverse.json) | Context: where the rover has been |
+| Curiosity waypoints | NASA [MMGIS MSL waypoints](https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json) | Rover's latest position, for the distance of the REMS readings |
+| Curiosity REMS weather | [REMS weather feed](https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json) (Centro de Astrobiología, outreach) | Conditions panel: temperature, pressure, UV, daylight |
+| InSight weather | [NASA InSight weather service](https://api.nasa.gov/) (`insight_weather`) | Conditions panel: wind (2020, Elysium Planitia) |
+| InSight lander position | Golombek et al. (2020), [doi:10.1029/2020EA001248](https://doi.org/10.1029/2020EA001248) | Distance of the InSight readings |
+| Curiosity RAD dose rate | Hassler et al. (2014), *Science*, [doi:10.1126/science.1244797](https://doi.org/10.1126/science.1244797); [SwRI release](https://www.swri.org/newsroom/press-releases/swri-scientists-publish-first-radiation-measurements-the-surface-of-mars) | Conditions panel: radiation, estimate for the walk |
 
 ## Credits
 - The `web/` project scaffold (Vite, TypeScript, lint configuration) is reused from our team's public practice repo

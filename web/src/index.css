@@ -14,6 +14,8 @@
   --error: #b91c1c;
   --hover: rgba(28, 27, 26, 0.06);
   --link: #0e7490;
+  --card: #ffffff;
+  --card-border: #dcd7cf;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +31,8 @@
     --error: #fca5a5;
     --hover: rgba(241, 239, 235, 0.08);
     --link: #67e8f9;
+    --card: #1d1c1a;
+    --card-border: #3a3734;
   }
 }
 
@@ -243,6 +247,92 @@ body {
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.4;
+}
+
+/* Conditions panel, between the map and the walk view */
+.cond {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 0;
+  box-sizing: border-box;
+}
+
+.cond-head h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.cond-head p {
+  margin: 0.25rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.cond-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.cond-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cond-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.cond-when {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.cond-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0.25rem 0;
+}
+
+.cond-card dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  align-self: center;
+}
+
+.cond-card dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cond-walk {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.cond-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.cond-source {
+  margin-top: auto;
+  color: var(--link);
+  font-size: 0.8rem;
 }
 
 /* OpenLayers controls on the right, away from the summary panel (.map raises specificity over ol.css) */
