@@ -31,3 +31,5 @@ Bu repoda çalışan **tüm yapay zekâ ajanları** (Claude Code, Google Antigra
 9. İş bitince kodun ne yaptığını kısa ve Türkçe anlat.
 10. **SI beyanı:** ajanın yazdığı kod için commit mesajına `Co-Authored-By` satırı ya da açıklama ekle; SI ile üretilen
     görsel/videoda filigran olsun, NASA logosu olmasın.
+11. **Proje skill'leri** `.agents/skills/` altında: `mars-geo` (koordinat, mesafe, DTM, eğim), `git-pr-workflow`
+    (dal, commit, PR), `science-stops` (`content/stops.csv`). İlgili işten önce o skill'i oku ve uygula.
