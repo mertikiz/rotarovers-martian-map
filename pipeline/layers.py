@@ -45,6 +45,16 @@ def write_png(path, bands):
     path.with_suffix(path.suffix + ".aux.xml").unlink(missing_ok=True)
 
 
+def slope_rgba(slope):
+    """RGBA overlay (4, rows, cols) for a slope grid in degrees: SLOPE_CLASSES colours, transparent elsewhere."""
+    rgba = np.zeros((4,) + slope.shape)
+    for lower, colour in SLOPE_CLASSES:
+        m = np.nan_to_num(slope) > lower
+        for b in range(4):
+            rgba[b][m] = colour[b]
+    return rgba
+
+
 def main(cell_m=5.0):
     z, transform = R.load_grid(cell_m)
     valid = np.isfinite(z)
@@ -53,13 +63,7 @@ def main(cell_m=5.0):
     hs = np.nan_to_num(hillshade(z, transform), nan=0)
     write_png(OUT / "hillshade.png", [hs, np.where(valid, 255, 0)])
 
-    slope = R.slope_deg(z, transform)
-    rgba = np.zeros((4,) + z.shape)
-    for lower, colour in SLOPE_CLASSES:
-        m = np.nan_to_num(slope) > lower
-        for b in range(4):
-            rgba[b][m] = colour[b]
-    write_png(OUT / "slope.png", rgba)
+    write_png(OUT / "slope.png", slope_rgba(R.slope_deg(z, transform)))
 
     h, w = z.shape
     left, top = transform * (0, 0)
