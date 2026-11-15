@@ -220,6 +220,20 @@ body {
   gap: 8px;
 }
 
+.layer-toggles label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.layer-toggles input {
+  margin: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--route);
+}
+
 .swatch {
   width: 18px;
   height: 12px;

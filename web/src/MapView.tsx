@@ -17,6 +17,7 @@ import 'ol/ol.css'
 import { EQC, LONLAT } from './mars.ts'
 import { routeLengthM, type LonLat } from './geo.ts'
 import { getJson, safeHttpUrl } from './url.ts'
+import { ALL_LAYERS_ON, MAP_LAYERS, setLayer, type LayerKey } from './layerToggles.ts'
 
 type LayersMeta = {
   dtm: string
@@ -97,6 +98,8 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
   const target = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const routeLayer = useRef<VectorLayer | null>(null)
+  const toggleable = useRef<Partial<Record<LayerKey, { setVisible: (on: boolean) => void }>>>({})
+  const [layersOn, setLayersOn] = useState(ALL_LAYERS_ON)
   const [walkerFeature] = useState(() => new Feature<Point>()) // created once, not on every render
   const selectedRef = useRef<number | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
@@ -122,12 +125,15 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
           features: new GeoJSON({ dataProjection: LONLAT, featureProjection: EQC }).readFeatures(route),
         })
         const vector = new VectorLayer({ source: routeSource, style: routeStyles(selectedRef) })
+        const terrain = imageLayer('/data/hillshade.png')
+        const slope = imageLayer('/data/slope.png', 0.85)
+        toggleable.current = { terrain, slope, route: vector }
         map = new Map({
           target: target.current,
           controls: defaultControls().extend([new ScaleLine({ units: 'metric' })]),
           layers: [
-            imageLayer('/data/hillshade.png'),
-            imageLayer('/data/slope.png', 0.85),
+            terrain,
+            slope,
             vector,
             new VectorLayer({ source: new VectorSource({ features: [walkerFeature] }), style: walkerStyle() }),
           ],
@@ -180,8 +186,14 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
       map?.setTarget(undefined)
       mapRef.current = null
       routeLayer.current = null
+      toggleable.current = {}
     }
   }, [walkerFeature]) // stable (created once), so the map is still built only once
+
+  // Apply the layer switches; `summary` is set once the layers exist, so the first pass sees them too.
+  useEffect(() => {
+    for (const { key } of MAP_LAYERS) toggleable.current[key]?.setVisible(layersOn[key])
+  }, [layersOn, summary])
 
   useEffect(() => {
     walkerFeature.setGeometry(walker ? new Point(transform(walker, LONLAT, EQC)) : undefined)
@@ -258,6 +270,21 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                 )
               })}
             </ol>
+            <h2 className="section">Map layers</h2>
+            <ul className="legend layer-toggles">
+              {MAP_LAYERS.map((l) => (
+                <li key={l.key}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={layersOn[l.key]}
+                      onChange={(e) => setLayersOn((v) => setLayer(v, l.key, e.target.checked))}
+                    />
+                    {l.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
             <ul className="legend">
               <li>
                 <span className="swatch line" /> Route avoiding slopes over {summary.slopeLimitDeg}°, out and back
