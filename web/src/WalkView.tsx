@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import ElevationProfile from './ElevationProfile'
 import {
+  computeRouteLegs,
   computeWalkSnapshot,
   DEFAULT_WALK_SPEED_KMH,
   DEFAULT_WALK_SPEED_MPS,
@@ -104,6 +105,11 @@ export function WalkView({
     return computeWalkSnapshot(parsedRoute, currentIndex, DEFAULT_WALK_SPEED_MPS)
   }, [parsedRoute, currentIndex])
 
+  const routeLegs = useMemo(() => {
+    if (!parsedRoute) return []
+    return computeRouteLegs(parsedRoute, DEFAULT_WALK_SPEED_MPS)
+  }, [parsedRoute])
+
   useEffect(() => {
     if (snapshot && onPositionChange) {
       onPositionChange(snapshot.currentCoord, snapshot.currentIndex)
@@ -169,11 +175,12 @@ export function WalkView({
     setIsPlaying((prev) => !prev)
   }
 
-  const handleCopyTraverseLog = () => {
+  const buildTraverseMarkdown = (): string => {
     const lines: string[] = [
-      '# RotaRovers EVA Traverse Waypoint Sheet',
+      '# RotaRovers EVA Traverse Waypoint & Leg Sheet',
       `Route length: ${formatDistance(parsedRoute.totalDistanceM)} · Assumed speed: ${DEFAULT_WALK_SPEED_KMH} km/h (${WALK_SPEED_NOTE})`,
       '',
+      '## Science Stops',
       '| Stop | Name | Coordinates | Distance | Elevation | ETA (from start) |',
       '|---|---|---|---|---|---|',
     ]
@@ -201,12 +208,44 @@ export function WalkView({
       )
     }
 
+    if (routeLegs.length > 0) {
+      lines.push(
+        '',
+        '## Leg-by-Leg Breakdown',
+        '| Leg | Segment | Distance | Duration | Climb / Descent | Max Slope |',
+        '|---|---|---|---|---|---|',
+      )
+      for (const leg of routeLegs) {
+        lines.push(
+          `| Leg ${leg.legNumber} | ${leg.fromLabel} → ${leg.toLabel} | ${formatDistance(leg.lengthM)} | ${formatDuration(leg.durationSec)} | +${leg.climbM.toFixed(1)} m / −${leg.descentM.toFixed(1)} m | ${leg.maxSlopeDeg.toFixed(1)}° |`,
+        )
+      }
+    }
+
+    return lines.join('\n')
+  }
+
+  const handleCopyTraverseLog = () => {
+    const md = buildTraverseMarkdown()
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      navigator.clipboard.writeText(md).then(() => {
         setCopiedLog(true)
         window.setTimeout(() => setCopiedLog(false), 2500)
       })
     }
+  }
+
+  const handleDownloadTraverseLog = () => {
+    const md = buildTraverseMarkdown()
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'rotarovers-eva-traverse-sheet.md'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const returning = parsedRoute.isRoundTrip && snapshot.isPastTurnaround
@@ -534,13 +573,22 @@ export function WalkView({
         <div className="walk-panel">
           <div className="walk-panel-header-row">
             <h3 className="walk-panel-title">Planned Stops Along Route</h3>
-            <button
-              type="button"
-              className="walk-stop-jump-btn"
-              onClick={handleCopyTraverseLog}
-            >
-              {copiedLog ? 'Copied EVA sheet!' : 'Copy EVA waypoint sheet'}
-            </button>
+            <div className="walk-step-group">
+              <button
+                type="button"
+                className="walk-stop-jump-btn"
+                onClick={handleCopyTraverseLog}
+              >
+                {copiedLog ? 'Copied EVA sheet!' : 'Copy EVA sheet'}
+              </button>
+              <button
+                type="button"
+                className="walk-stop-jump-btn"
+                onClick={handleDownloadTraverseLog}
+              >
+                Download .md
+              </button>
+            </div>
           </div>
           <ol className="walk-stops-list">
             {parsedRoute.stops.map((stop) => {
@@ -648,6 +696,50 @@ export function WalkView({
               </dd>
             </div>
           </dl>
+
+          {routeLegs.length > 0 && (
+            <div className="walk-legs-section">
+              <h4 className="walk-legs-subtitle">Leg-by-Leg Traverse Breakdown</h4>
+              <ol className="walk-stops-list">
+                {routeLegs.map((leg) => {
+                  const isActiveLeg =
+                    snapshot.currentIndex >= leg.startIndex &&
+                    snapshot.currentIndex < leg.endIndex
+                  const isCompletedLeg = snapshot.currentIndex >= leg.endIndex
+
+                  let legClass = 'walk-stop-item'
+                  if (isActiveLeg) legClass += ' walk-stop-item--next'
+                  else if (isCompletedLeg) legClass += ' walk-stop-item--reached'
+
+                  return (
+                    <li key={leg.legNumber} className={legClass}>
+                      <div>
+                        <strong>
+                          Leg {leg.legNumber}: {leg.fromLabel} → {leg.toLabel}
+                        </strong>
+                        <div className="walk-slider-readout">
+                          {formatDistance(leg.lengthM)} · {formatDuration(leg.durationSec)}{' '}
+                          · +{leg.climbM.toFixed(1)} m / −{leg.descentM.toFixed(1)} m ·
+                          max slope {leg.maxSlopeDeg.toFixed(1)}°
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="walk-stop-jump-btn"
+                        onClick={() => handleIndexChange(leg.startIndex)}
+                      >
+                        {isActiveLeg
+                          ? 'In progress'
+                          : isCompletedLeg
+                            ? 'Completed'
+                            : 'Start leg'}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ol>
+            </div>
+          )}
         </div>
       </div>
     </section>

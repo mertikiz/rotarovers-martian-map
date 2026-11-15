@@ -1,5 +1,10 @@
-import { useId, useMemo } from 'react'
-import { formatDistance, type ParsedRouteData, type WalkSnapshot } from './walkUtils'
+import { useId, useMemo, useState } from 'react'
+import {
+  findSteepIntervals,
+  formatDistance,
+  type ParsedRouteData,
+  type WalkSnapshot,
+} from './walkUtils'
 
 export interface ElevationProfileProps {
   route: ParsedRouteData
@@ -34,10 +39,13 @@ export function ElevationProfile({
 }: ElevationProfileProps) {
   const titleId = useId()
   const descId = useId()
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
   const elevations = route.elevationsM
   const distances = route.cumulativeDistancesM
   const totalDistanceM = route.totalDistanceM
+
+  const steepBands = useMemo(() => findSteepIntervals(route, 15), [route])
 
   const chartData = useMemo(() => {
     if (!elevations || elevations.length < 2 || totalDistanceM <= 0) {
@@ -163,15 +171,13 @@ export function ElevationProfile({
     snapshot.walkedDistanceM,
   )}, elevation ${formatElev(currentPt.elev)}.`
 
-  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!onSelectIndex) return
+  const resolveIndexFromMouseEvent = (e: React.MouseEvent<SVGSVGElement>): number | null => {
     const rect = e.currentTarget.getBoundingClientRect()
-    if (rect.width <= 0) return
+    if (rect.width <= 0) return null
     const svgX = ((e.clientX - rect.left) / rect.width) * SVG_WIDTH
     const ratio = Math.max(0, Math.min(1, (svgX - PAD_LEFT) / PLOT_W))
     const targetDist = ratio * totalDistanceM
 
-    // Binary search for the nearest vertex in cumulativeDistancesM
     let lo = 0
     let hi = distances.length - 1
     while (lo < hi) {
@@ -185,8 +191,24 @@ export function ElevationProfile({
     ) {
       lo = lo - 1
     }
-    onSelectIndex(lo)
+    return lo
   }
+
+  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!onSelectIndex) return
+    const idx = resolveIndexFromMouseEvent(e)
+    if (idx !== null) onSelectIndex(idx)
+  }
+
+  const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const idx = resolveIndexFromMouseEvent(e)
+    setHoverIndex(idx)
+  }
+
+  const hoverPt =
+    hoverIndex !== null && hoverIndex !== walkedIdx
+      ? chartData.points[hoverIndex]
+      : null
 
   return (
     <div className="walk-panel walk-elevation-panel">
@@ -202,10 +224,20 @@ export function ElevationProfile({
           </p>
         </div>
         <div className="walk-elevation-live" aria-live="polite">
-          Current elevation: <strong>{formatElev(currentPt.elev)}</strong>
-          {snapshot.currentSlopeDeg !== undefined && (
+          {hoverPt ? (
             <>
-              {' · '}Slope: <strong>{formatSignedSlope(snapshot.currentSlopeDeg)}</strong>
+              Inspect: <strong>{formatElev(hoverPt.elev)}</strong> at{' '}
+              <strong>{formatDistance(hoverPt.dist)}</strong>
+            </>
+          ) : (
+            <>
+              Current elevation: <strong>{formatElev(currentPt.elev)}</strong>
+              {snapshot.currentSlopeDeg !== undefined && (
+                <>
+                  {' · '}Slope:{' '}
+                  <strong>{formatSignedSlope(snapshot.currentSlopeDeg)}</strong>
+                </>
+              )}
             </>
           )}
         </div>
@@ -218,6 +250,8 @@ export function ElevationProfile({
           role="img"
           aria-labelledby={`${titleId} ${descId}`}
           onClick={handleSvgClick}
+          onMouseMove={handleSvgMouseMove}
+          onMouseLeave={() => setHoverIndex(null)}
         >
           <title id={titleId}>Marswalk Route Elevation Profile</title>
           <desc id={descId}>{summaryText}</desc>
@@ -286,6 +320,27 @@ export function ElevationProfile({
           >
             Walked distance along route
           </text>
+
+          {/* Steep (15-20 deg) slope caution bands along baseline */}
+          {steepBands.map((band, idx) => {
+            const x1 = chartData.xOfDist(band.startDistanceM)
+            const x2 = chartData.xOfDist(band.endDistanceM)
+            const w = Math.max(2.5, x2 - x1)
+            return (
+              <rect
+                key={`steep-${idx}`}
+                x={x1}
+                y={PAD_TOP}
+                width={w}
+                height={PLOT_H}
+                className="walk-elev-steep-band"
+              >
+                <title>
+                  Steep slope section ({band.peakSlopeDeg.toFixed(1)}°, 15–20° caution zone)
+                </title>
+              </rect>
+            )
+          })}
 
           {/* Full route area & line (upcoming / unwalked portion) */}
           <path d={chartData.areaPath} className="walk-elev-area-full" />
@@ -416,6 +471,25 @@ export function ElevationProfile({
               </g>
             )
           })}
+
+          {/* Hover inspection crosshair */}
+          {hoverPt && (
+            <g pointerEvents="none">
+              <line
+                x1={hoverPt.x}
+                y1={PAD_TOP}
+                x2={hoverPt.x}
+                y2={chartData.baselineY}
+                className="walk-elev-hover-line"
+              />
+              <circle
+                cx={hoverPt.x}
+                cy={hoverPt.y}
+                r={4}
+                className="walk-elev-hover-dot"
+              />
+            </g>
+          )}
 
           {/* Astronaut current position cursor & ring */}
           <g className="walk-elev-astronaut" pointerEvents="none">

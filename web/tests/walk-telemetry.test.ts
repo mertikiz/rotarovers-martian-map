@@ -2,7 +2,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
+  computeRouteLegs,
   computeWalkSnapshot,
+  findSteepIntervals,
   formatCardinal,
   marsBearingDeg,
   parseRouteGeoJSON,
@@ -65,3 +67,39 @@ test('computeWalkSnapshot computes local slope, ahead 50m slope, and cumulative 
     )
   }
 })
+
+test('computeRouteLegs partitions the round-trip route into contiguous stop-to-stop legs plus return leg', () => {
+  const legs = computeRouteLegs(parsed)
+  // 5 stops => 4 outbound legs + 1 return leg to Base = 5 legs total
+  assert.equal(legs.length, parsed.stops.length)
+  assert.equal(legs[legs.length - 1].isReturnLeg, true)
+
+  let sumLengthM = 0
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i]
+    assert.ok(leg.lengthM > 0, `leg ${leg.legNumber} must have positive length`)
+    assert.ok(
+      leg.maxSlopeDeg <= (parsed.slopeLimitDeg ?? 20),
+      `leg ${leg.legNumber} maxSlopeDeg ${leg.maxSlopeDeg} exceeds limit`,
+    )
+    sumLengthM += leg.lengthM
+    if (i > 0) {
+      assert.equal(leg.startIndex, legs[i - 1].endIndex)
+    }
+  }
+
+  assert.ok(
+    Math.abs(sumLengthM - parsed.totalDistanceM) < 1e-6,
+    `sum of leg lengths ${sumLengthM} m vs totalDistanceM ${parsed.totalDistanceM} m`,
+  )
+})
+
+test('findSteepIntervals identifies caution intervals below the 20 deg limit', () => {
+  const steep15 = findSteepIntervals(parsed, 15)
+  for (const band of steep15) {
+    assert.ok(band.peakSlopeDeg >= 15)
+    assert.ok(band.peakSlopeDeg <= (parsed.slopeLimitDeg ?? 20))
+    assert.ok(band.endDistanceM > band.startDistanceM)
+  }
+})
+

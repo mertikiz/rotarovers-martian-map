@@ -140,6 +140,30 @@ export interface WalkSnapshot {
   completedStopsCount: number
 }
 
+export interface RouteLeg {
+  legNumber: number
+  fromLabel: string
+  toLabel: string
+  startIndex: number
+  endIndex: number
+  startDistanceM: number
+  endDistanceM: number
+  lengthM: number
+  durationSec: number
+  climbM: number
+  descentM: number
+  maxSlopeDeg: number
+  isReturnLeg: boolean
+}
+
+export interface SteepInterval {
+  startIndex: number
+  endIndex: number
+  startDistanceM: number
+  endDistanceM: number
+  peakSlopeDeg: number
+}
+
 export function isInsideFootprint([lon, lat]: LonLat): boolean {
   return (
     lon >= FOOTPRINT_BOUNDS.minLon &&
@@ -487,4 +511,153 @@ export function formatLonLat([lon, lat]: LonLat): string {
   const lonStr = `${Math.abs(lon).toFixed(5)}°${lon >= 0 ? 'E' : 'W'}`
   const latStr = `${Math.abs(lat).toFixed(5)}°${lat >= 0 ? 'N' : 'S'}`
   return `${lonStr}, ${latStr}`
+}
+
+/**
+ * Breaks the route into stop-to-stop legs (plus the return leg to Base on a round-trip route)
+ * and computes distance, duration, climb, descent, and maximum local slope for each leg.
+ */
+export function computeRouteLegs(
+  route: ParsedRouteData,
+  speedMps: number = DEFAULT_WALK_SPEED_MPS,
+): RouteLeg[] {
+  if (route.stops.length < 2) {
+    return []
+  }
+
+  const safeSpeed = speedMps > 0 ? speedMps : DEFAULT_WALK_SPEED_MPS
+  const dists = route.cumulativeDistancesM
+  const elevs = route.elevationsM
+  const legs: RouteLeg[] = []
+
+  const buildLeg = (
+    legNumber: number,
+    fromLabel: string,
+    toLabel: string,
+    startIndex: number,
+    endIndex: number,
+    isReturnLeg: boolean,
+  ): RouteLeg => {
+    const startDistanceM = dists[startIndex]
+    const endDistanceM = dists[endIndex]
+    const lengthM = Math.max(0, endDistanceM - startDistanceM)
+    const durationSec = lengthM / safeSpeed
+
+    let climbM = 0
+    let descentM = 0
+    let maxSlopeDeg = 0
+
+    if (elevs && elevs.length === route.coordinates.length) {
+      for (let i = startIndex; i < endIndex; i++) {
+        const dz = elevs[i + 1] - elevs[i]
+        if (dz > 0) climbM += dz
+        else if (dz < 0) descentM += -dz
+
+        const ds = dists[i + 1] - dists[i]
+        if (ds > 0.01) {
+          const deg = (Math.atan(Math.abs(dz) / ds) * 180) / Math.PI
+          if (deg > maxSlopeDeg) maxSlopeDeg = deg
+        }
+      }
+    }
+
+    return {
+      legNumber,
+      fromLabel,
+      toLabel,
+      startIndex,
+      endIndex,
+      startDistanceM,
+      endDistanceM,
+      lengthM,
+      durationSec,
+      climbM,
+      descentM,
+      maxSlopeDeg,
+      isReturnLeg,
+    }
+  }
+
+  for (let i = 0; i < route.stops.length - 1; i++) {
+    const a = route.stops[i]
+    const b = route.stops[i + 1]
+    if (b.routeIndex > a.routeIndex) {
+      legs.push(
+        buildLeg(
+          legs.length + 1,
+          `#${a.order} ${a.name}`,
+          `#${b.order} ${b.name}`,
+          a.routeIndex,
+          b.routeIndex,
+          false,
+        ),
+      )
+    }
+  }
+
+  const lastStop = route.stops[route.stops.length - 1]
+  const maxIndex = route.coordinates.length - 1
+  if (route.isRoundTrip && maxIndex > lastStop.routeIndex) {
+    legs.push(
+      buildLeg(
+        legs.length + 1,
+        `#${lastStop.order} ${lastStop.name}`,
+        'Base (Return)',
+        lastStop.routeIndex,
+        maxIndex,
+        true,
+      ),
+    )
+  }
+
+  return legs
+}
+
+/**
+ * Finds contiguous route intervals where the local segment slope is at or above `thresholdDeg` (default 15°).
+ */
+export function findSteepIntervals(
+  route: ParsedRouteData,
+  thresholdDeg: number = 15,
+): SteepInterval[] {
+  const elevs = route.elevationsM
+  const dists = route.cumulativeDistancesM
+  if (!elevs || elevs.length !== route.coordinates.length) {
+    return []
+  }
+
+  const intervals: SteepInterval[] = []
+  let active: SteepInterval | null = null
+
+  for (let i = 0; i < route.coordinates.length - 1; i++) {
+    const ds = dists[i + 1] - dists[i]
+    if (ds <= 0.01) continue
+    const dz = Math.abs(elevs[i + 1] - elevs[i])
+    const deg = (Math.atan(dz / ds) * 180) / Math.PI
+
+    if (deg >= thresholdDeg) {
+      if (!active) {
+        active = {
+          startIndex: i,
+          endIndex: i + 1,
+          startDistanceM: dists[i],
+          endDistanceM: dists[i + 1],
+          peakSlopeDeg: deg,
+        }
+      } else {
+        active.endIndex = i + 1
+        active.endDistanceM = dists[i + 1]
+        if (deg > active.peakSlopeDeg) active.peakSlopeDeg = deg
+      }
+    } else if (active) {
+      intervals.push(active)
+      active = null
+    }
+  }
+
+  if (active) {
+    intervals.push(active)
+  }
+
+  return intervals
 }
