@@ -109,6 +109,24 @@ export interface WalkSnapshot {
   currentIndex: number
   currentCoord: LonLat
   currentElevationM?: number
+  /** Local signed terrain slope in degrees (+ uphill, - downhill along travel direction). */
+  currentSlopeDeg?: number
+  /** Local travel bearing in degrees (0 = North, 90 = East, 180 = South, 270 = West). */
+  currentHeadingDeg?: number
+  /** 16-wind compass cardinal label for currentHeadingDeg (e.g. 'NNW', 'SSE'). */
+  currentCardinal?: string
+  /** Maximum absolute slope in degrees within the next 50 m along the route. */
+  maxSlopeAhead50mDeg?: number
+  /** Cumulative elevation gain (m) walked from start up to currentIndex. */
+  walkedClimbM?: number
+  /** Cumulative elevation loss (m) walked from start up to currentIndex. */
+  walkedDescentM?: number
+  /** Great-circle Mars distance (m) from the start Base (vertex 0) to currentCoord. */
+  straightLineFromBaseM: number
+  /** Shortest safe distance (m) back to Base along the walkable route if aborting/returning now. */
+  walkbackDistanceM: number
+  /** Estimated time (s) to walk back to Base along the route if returning now. */
+  walkbackTimeSec: number
   walkedDistanceM: number
   remainingDistanceM: number
   progressPercent: number
@@ -128,6 +146,30 @@ export interface WalkSnapshot {
   completedStopsCount: number
 }
 
+export interface RouteLeg {
+  legNumber: number
+  fromLabel: string
+  toLabel: string
+  startIndex: number
+  endIndex: number
+  startDistanceM: number
+  endDistanceM: number
+  lengthM: number
+  durationSec: number
+  climbM: number
+  descentM: number
+  maxSlopeDeg: number
+  isReturnLeg: boolean
+}
+
+export interface SteepInterval {
+  startIndex: number
+  endIndex: number
+  startDistanceM: number
+  endDistanceM: number
+  peakSlopeDeg: number
+}
+
 export function isInsideFootprint([lon, lat]: LonLat): boolean {
   return (
     lon >= FOOTPRINT_BOUNDS.minLon &&
@@ -139,6 +181,48 @@ export function isInsideFootprint([lon, lat]: LonLat): boolean {
 
 export function marsDistanceM(a: LonLat, b: LonLat): number {
   return getDistance(a, b, MARS_RADIUS_M)
+}
+
+const COMPASS_POINTS = [
+  'N',
+  'NNE',
+  'NE',
+  'ENE',
+  'E',
+  'ESE',
+  'SE',
+  'SSE',
+  'S',
+  'SSW',
+  'SW',
+  'WSW',
+  'W',
+  'WNW',
+  'NW',
+  'NNW',
+] as const
+
+/**
+ * Forward azimuth (bearing) in degrees [0, 360) from point `a` to point `b` on the sphere.
+ */
+export function marsBearingDeg([lon1, lat1]: LonLat, [lon2, lat2]: LonLat): number {
+  const toRad = Math.PI / 180
+  const phi1 = lat1 * toRad
+  const phi2 = lat2 * toRad
+  const dLambda = (lon2 - lon1) * toRad
+
+  const y = Math.sin(dLambda) * Math.cos(phi2)
+  const x =
+    Math.cos(phi1) * Math.sin(phi2) -
+    Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLambda)
+  const thetaDeg = (Math.atan2(y, x) * 180) / Math.PI
+  return ((thetaDeg % 360) + 360) % 360
+}
+
+export function formatCardinal(bearingDeg: number): string {
+  const normalized = ((bearingDeg % 360) + 360) % 360
+  const idx = Math.round(normalized / 22.5) % 16
+  return COMPASS_POINTS[idx]
 }
 
 /**
@@ -286,10 +370,71 @@ export function computeWalkSnapshot(
   const progressPercent =
     totalDistanceM > 0 ? (walkedDistanceM / totalDistanceM) * 100 : 0
 
+  // Compute local heading and signed slope along the direction of travel
+  let currentHeadingDeg: number | undefined
+  let currentCardinal: string | undefined
+  let currentSlopeDeg: number | undefined
+  let maxSlopeAhead50mDeg: number | undefined
+  let walkedClimbM: number | undefined
+  let walkedDescentM: number | undefined
+
+  const stepFromIdx = currentIndex < maxIndex ? currentIndex : Math.max(0, currentIndex - 1)
+  const stepToIdx = currentIndex < maxIndex ? currentIndex + 1 : currentIndex
+  if (stepToIdx > stepFromIdx) {
+    const pA = route.coordinates[stepFromIdx]
+    const pB = route.coordinates[stepToIdx]
+    if (pA[0] !== pB[0] || pA[1] !== pB[1]) {
+      currentHeadingDeg = marsBearingDeg(pA, pB)
+      currentCardinal = formatCardinal(currentHeadingDeg)
+    }
+  }
+
+  if (route.elevationsM && route.elevationsM.length === route.coordinates.length) {
+    const elevs = route.elevationsM
+    const dists = route.cumulativeDistancesM
+
+    if (stepToIdx > stepFromIdx) {
+      const ds = dists[stepToIdx] - dists[stepFromIdx]
+      const dz = elevs[stepToIdx] - elevs[stepFromIdx]
+      currentSlopeDeg = ds > 0.01 ? (Math.atan(dz / ds) * 180) / Math.PI : 0
+    }
+
+    // Look ahead 50 m along the route for the steepest local segment
+    let maxAhead = 0
+    for (let i = currentIndex; i < maxIndex; i++) {
+      if (dists[i] - walkedDistanceM > 50) break
+      const ds = dists[i + 1] - dists[i]
+      if (ds > 0.01) {
+        const dz = Math.abs(elevs[i + 1] - elevs[i])
+        const deg = (Math.atan(dz / ds) * 180) / Math.PI
+        if (deg > maxAhead) maxAhead = deg
+      }
+    }
+    maxSlopeAhead50mDeg = maxAhead
+
+    // Cumulative climb and descent walked so far
+    let climbSoFar = 0
+    let descentSoFar = 0
+    for (let i = 1; i <= currentIndex; i++) {
+      const dz = elevs[i] - elevs[i - 1]
+      if (dz > 0) climbSoFar += dz
+      else if (dz < 0) descentSoFar += -dz
+    }
+    walkedClimbM = climbSoFar
+    walkedDescentM = descentSoFar
+  }
+
   const safeSpeed = speedMps > 0 ? speedMps : DEFAULT_WALK_SPEED_MPS
   const elapsedTimeSec = walkedDistanceM / safeSpeed
   const remainingTimeSec = remainingDistanceM / safeSpeed
   const totalTimeSec = totalDistanceM / safeSpeed
+
+  // Great-circle distance from Base (vertex 0) and shortest route walkback distance to Base
+  const straightLineFromBaseM = marsDistanceM(route.coordinates[0], currentCoord)
+  const walkbackDistanceM = route.isRoundTrip
+    ? Math.min(walkedDistanceM, remainingDistanceM)
+    : walkedDistanceM
+  const walkbackTimeSec = walkbackDistanceM / safeSpeed
 
   // Turnaround point = half of total walk duration / distance
   const turnaroundDistanceM = totalDistanceM / 2
@@ -326,6 +471,15 @@ export function computeWalkSnapshot(
     currentIndex,
     currentCoord,
     currentElevationM,
+    currentSlopeDeg,
+    currentHeadingDeg,
+    currentCardinal,
+    maxSlopeAhead50mDeg,
+    walkedClimbM,
+    walkedDescentM,
+    straightLineFromBaseM,
+    walkbackDistanceM,
+    walkbackTimeSec,
     walkedDistanceM,
     remainingDistanceM,
     progressPercent,
@@ -373,4 +527,153 @@ export function formatLonLat([lon, lat]: LonLat): string {
   const lonStr = `${Math.abs(lon).toFixed(5)}°${lon >= 0 ? 'E' : 'W'}`
   const latStr = `${Math.abs(lat).toFixed(5)}°${lat >= 0 ? 'N' : 'S'}`
   return `${lonStr}, ${latStr}`
+}
+
+/**
+ * Breaks the route into stop-to-stop legs (plus the return leg to Base on a round-trip route)
+ * and computes distance, duration, climb, descent, and maximum local slope for each leg.
+ */
+export function computeRouteLegs(
+  route: ParsedRouteData,
+  speedMps: number = DEFAULT_WALK_SPEED_MPS,
+): RouteLeg[] {
+  if (route.stops.length < 2) {
+    return []
+  }
+
+  const safeSpeed = speedMps > 0 ? speedMps : DEFAULT_WALK_SPEED_MPS
+  const dists = route.cumulativeDistancesM
+  const elevs = route.elevationsM
+  const legs: RouteLeg[] = []
+
+  const buildLeg = (
+    legNumber: number,
+    fromLabel: string,
+    toLabel: string,
+    startIndex: number,
+    endIndex: number,
+    isReturnLeg: boolean,
+  ): RouteLeg => {
+    const startDistanceM = dists[startIndex]
+    const endDistanceM = dists[endIndex]
+    const lengthM = Math.max(0, endDistanceM - startDistanceM)
+    const durationSec = lengthM / safeSpeed
+
+    let climbM = 0
+    let descentM = 0
+    let maxSlopeDeg = 0
+
+    if (elevs && elevs.length === route.coordinates.length) {
+      for (let i = startIndex; i < endIndex; i++) {
+        const dz = elevs[i + 1] - elevs[i]
+        if (dz > 0) climbM += dz
+        else if (dz < 0) descentM += -dz
+
+        const ds = dists[i + 1] - dists[i]
+        if (ds > 0.01) {
+          const deg = (Math.atan(Math.abs(dz) / ds) * 180) / Math.PI
+          if (deg > maxSlopeDeg) maxSlopeDeg = deg
+        }
+      }
+    }
+
+    return {
+      legNumber,
+      fromLabel,
+      toLabel,
+      startIndex,
+      endIndex,
+      startDistanceM,
+      endDistanceM,
+      lengthM,
+      durationSec,
+      climbM,
+      descentM,
+      maxSlopeDeg,
+      isReturnLeg,
+    }
+  }
+
+  for (let i = 0; i < route.stops.length - 1; i++) {
+    const a = route.stops[i]
+    const b = route.stops[i + 1]
+    if (b.routeIndex > a.routeIndex) {
+      legs.push(
+        buildLeg(
+          legs.length + 1,
+          `#${a.order} ${a.name}`,
+          `#${b.order} ${b.name}`,
+          a.routeIndex,
+          b.routeIndex,
+          false,
+        ),
+      )
+    }
+  }
+
+  const lastStop = route.stops[route.stops.length - 1]
+  const maxIndex = route.coordinates.length - 1
+  if (route.isRoundTrip && maxIndex > lastStop.routeIndex) {
+    legs.push(
+      buildLeg(
+        legs.length + 1,
+        `#${lastStop.order} ${lastStop.name}`,
+        'Base (Return)',
+        lastStop.routeIndex,
+        maxIndex,
+        true,
+      ),
+    )
+  }
+
+  return legs
+}
+
+/**
+ * Finds contiguous route intervals where the local segment slope is at or above `thresholdDeg` (default 15°).
+ */
+export function findSteepIntervals(
+  route: ParsedRouteData,
+  thresholdDeg: number = 15,
+): SteepInterval[] {
+  const elevs = route.elevationsM
+  const dists = route.cumulativeDistancesM
+  if (!elevs || elevs.length !== route.coordinates.length) {
+    return []
+  }
+
+  const intervals: SteepInterval[] = []
+  let active: SteepInterval | null = null
+
+  for (let i = 0; i < route.coordinates.length - 1; i++) {
+    const ds = dists[i + 1] - dists[i]
+    if (ds <= 0.01) continue
+    const dz = Math.abs(elevs[i + 1] - elevs[i])
+    const deg = (Math.atan(dz / ds) * 180) / Math.PI
+
+    if (deg >= thresholdDeg) {
+      if (!active) {
+        active = {
+          startIndex: i,
+          endIndex: i + 1,
+          startDistanceM: dists[i],
+          endDistanceM: dists[i + 1],
+          peakSlopeDeg: deg,
+        }
+      } else {
+        active.endIndex = i + 1
+        active.endDistanceM = dists[i + 1]
+        if (deg > active.peakSlopeDeg) active.peakSlopeDeg = deg
+      }
+    } else if (active) {
+      intervals.push(active)
+      active = null
+    }
+  }
+
+  if (active) {
+    intervals.push(active)
+  }
+
+  return intervals
 }
