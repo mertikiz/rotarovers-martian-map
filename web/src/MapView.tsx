@@ -198,6 +198,17 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
     for (const { key } of MAP_LAYERS) toggleable.current[key]?.setVisible(layersOn[key])
   }, [layersOn, summary])
 
+  // OpenLayers builds its control buttons once with English tooltips; keep them in the UI language.
+  useEffect(() => {
+    const tips: [string, string][] = [
+      ['.ol-zoom-in', 'Zoom in'],
+      ['.ol-zoom-out', 'Zoom out'],
+      ['.ol-rotate-reset', 'Reset rotation'],
+      ['.ol-attribution button', 'Attributions'],
+    ]
+    for (const [sel, en] of tips) target.current?.querySelector(sel)?.setAttribute('title', t(en))
+  }, [t, summary])
+
   useEffect(() => {
     walkerFeature.setGeometry(walker ? new Point(transform(walker, LONLAT, EQC)) : undefined)
   }, [walker, walkerFeature])

@@ -28,3 +28,35 @@ test('every translation keeps exactly the placeholders of its English text', () 
   const holes = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',')
   for (const [en, tr] of Object.entries(TR)) assert.equal(holes(tr), holes(en), en)
 })
+
+test('every UI text passed to t() has a Turkish version', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs')
+  const dir = new URL('../src/', import.meta.url)
+  const missing = new Set<string>()
+  for (const name of readdirSync(dir).filter((n) => n.endsWith('.tsx'))) {
+    const src = readFileSync(new URL(name, dir), 'utf8')
+    for (const m of src.matchAll(/\bt\(\s*(['"])((?:\\.|(?!\1).)*)\1/g)) {
+      const en = m[2].replace(/\\(['"])/g, '$1')
+      if (!(en in TR)) missing.add(en)
+    }
+  }
+  assert.deepEqual([...missing], [], 'texts with no Turkish version')
+})
+
+test('texts shown from the conditions data have Turkish versions', async () => {
+  const { readFileSync } = await import('node:fs')
+  const c = JSON.parse(readFileSync(new URL('../public/data/conditions.json', import.meta.url), 'utf8'))
+  for (const en of [c.disclaimer, c.rems.note, c.rems.uv_index, c.rad.period, c.rad.what]) {
+    assert.ok(en in TR, en)
+  }
+})
+
+test('durations, compass letters and coordinates follow the UI language', async () => {
+  const { formatDuration, formatLonLat, localizeCompass } = await import('../src/walkUtils.ts')
+  assert.equal(formatDuration(4 * 3600 + 27 * 60), '4h 27m')
+  assert.equal(formatDuration(4 * 3600 + 27 * 60, 'tr'), '4 sa 27 dk')
+  assert.equal(formatDuration(95, 'tr'), '1 dk 35 sn')
+  assert.equal(localizeCompass('NNE', 'tr'), 'KKD')
+  assert.equal(localizeCompass('SW', 'en'), 'SW')
+  assert.equal(formatLonLat([137.2, -5.1], 'tr'), '137.20000°D, 5.10000°G')
+})

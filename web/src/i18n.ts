@@ -1,6 +1,6 @@
 /** UI language. English is the default and the source text; Turkish lives here, keyed by that English text, so a
- *  string with no translation simply stays English. From the data files only the science stops are translated
- *  (below); the conditions notes stay English. Placeholders look like {name}. */
+ *  string with no translation simply stays English. From the data files the science stops and the conditions texts are translated
+ *  (below), keyed by their English text in the data. Placeholders look like {name}. */
 export type Lang = 'en' | 'tr'
 
 export const TR: Record<string, string> = {
@@ -24,6 +24,10 @@ export const TR: Record<string, string> = {
   'Route avoiding slopes over {deg}°, out and back': '{deg}° üstü eğimlerden kaçınan rota, gidiş-dönüş',
   'Base (B): start and end, at stop 1': 'Üs (B): başlangıç ve bitiş, 1. durakta',
   'Slope {from}–{to}°': 'Eğim {from}–{to}°',
+  'Zoom in': 'Yakınlaştır',
+  'Zoom out': 'Uzaklaştır',
+  'Reset rotation': 'Döndürmeyi sıfırla',
+  Attributions: 'Kaynak bilgileri',
   'Slope over {from}°: no-go': '{from}° üstü eğim: geçilmez',
   'Elevation and slope: HiRISE DTM {dtm} (NASA/JPL/University of Arizona, via USGS Astrogeology), 5 m grid.':
     'Yükselti ve eğim: HiRISE DTM {dtm} (NASA/JPL/Arizona Üniversitesi, USGS Astrogeology aracılığıyla), 5 m ızgara.',
@@ -191,6 +195,28 @@ export const TR: Record<string, string> = {
   '(at {dist})': '({dist} noktasında)',
   '{m} m span': '{m} m fark',
   'Astronaut Elevation': 'Astronot yükseltisi',
+  'Marswalk Route Elevation Profile': 'Mars yürüyüşü rota yükselti profili',
+  'Walked distance along route': 'Rota boyunca yürünen mesafe',
+  'Base (end of round trip, {dist}, {elev})': 'Üs (gidiş-dönüşün sonu, {dist}, {elev})',
+  'Stop #{n}: {name} ({dist}, {elev})': '{n}. durak: {name} ({dist}, {elev})',
+  'Base (start of walk, 0 m, {elev})': 'Üs (yürüyüşün başı, 0 m, {elev})',
+  'Route elevation profile from {min} (lowest point) to {max} (highest point), with +{climb} m total climb and −{descent} m total descent. Current astronaut position is at {dist}, elevation {elev}.':
+    'Rota yükselti profili: en alçak nokta {min}, en yüksek nokta {max}; toplam +{climb} m tırmanış ve −{descent} m iniş. Astronot şu an {dist} noktasında, yükselti {elev}.',
+
+  // Walk speed note (walkUtils) and units
+  'NASA lunar EVA level-terrain rate; slower on slopes': "NASA'nın Ay EVA'sı için düz arazi hızı; eğimde daha yavaş",
+  'km/h': 'km/sa',
+
+  // Conditions data (public/data/conditions.json), translated like the stop texts
+  'Latest available measurements at other places and times. Not a forecast for the route.':
+    'Başka yerlerde ve zamanlarda yapılmış en son ölçümler. Rota için hava tahmini değildir.',
+  'REMS values via the Centro de Astrobiologia (CAB) outreach feed; CAB points to the PDS for scientific REMS data. Wind and humidity are not reported in this feed.':
+    "REMS değerleri Centro de Astrobiologia'nın (CAB) tanıtım akışından; bilimsel REMS verisi için CAB, PDS'i gösteriyor. Bu akış rüzgâr ve nem vermiyor.",
+  Moderate: 'Orta',
+  'August 2012 to June 2013': 'Ağustos 2012 – Haziran 2013',
+  "Average galactic cosmic ray dose equivalent rate on the surface at Gale crater, measured by Curiosity's RAD. The rate varies from day to night with atmospheric shielding.":
+    "Gale kraterinde yüzeyde ortalama galaktik kozmik ışın eşdeğer doz hızı; Curiosity'nin RAD aleti ölçtü. Atmosferin koruması değiştikçe hız gece ile gündüz arasında değişir.",
+  '{v} mSv/day': '{v} mSv/gün',
 }
 
 export function translate(lang: Lang, en: string, vars: Record<string, string | number> = {}): string {

@@ -219,6 +219,13 @@ export function marsBearingDeg([lon1, lat1]: LonLat, [lon2, lat2]: LonLat): numb
   return ((thetaDeg % 360) + 360) % 360
 }
 
+/** Compass letters in the UI language: Turkish K/D/G/B for N/E/S/W ('NNE' -> 'KKD'). */
+export function localizeCompass(label: string, lang: 'en' | 'tr'): string {
+  if (lang === 'en') return label
+  const tr: Record<string, string> = { N: 'K', E: 'D', S: 'G', W: 'B' }
+  return label.replace(/[NESW]/g, (c) => tr[c])
+}
+
 export function formatCardinal(bearingDeg: number): string {
   const normalized = ((bearingDeg % 360) + 360) % 360
   const idx = Math.round(normalized / 22.5) % 16
@@ -508,24 +515,28 @@ export function formatDistance(metres: number): string {
   return `${Math.round(metres)} m`
 }
 
-export function formatDuration(seconds: number): string {
+/** Unit letters per UI language for formatDuration ('4h 27m' / '4 sa 27 dk'). */
+const DURATION_UNITS = { en: ['h', 'm', 's', ''], tr: ['sa', 'dk', 'sn', ' '] } as const
+
+export function formatDuration(seconds: number, lang: 'en' | 'tr' = 'en'): string {
+  const [uh, um, us, gap] = DURATION_UNITS[lang]
   const totalSec = Math.max(0, Math.round(seconds))
   const hours = Math.floor(totalSec / 3600)
   const minutes = Math.floor((totalSec % 3600) / 60)
   const secs = totalSec % 60
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m`
+    return `${hours}${gap}${uh} ${minutes}${gap}${um}`
   }
   if (minutes > 0) {
-    return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`
+    return secs > 0 ? `${minutes}${gap}${um} ${secs}${gap}${us}` : `${minutes}${gap}${um}`
   }
-  return `${secs}s`
+  return `${secs}${gap}${us}`
 }
 
-export function formatLonLat([lon, lat]: LonLat): string {
-  const lonStr = `${Math.abs(lon).toFixed(5)}°${lon >= 0 ? 'E' : 'W'}`
-  const latStr = `${Math.abs(lat).toFixed(5)}°${lat >= 0 ? 'N' : 'S'}`
+export function formatLonLat([lon, lat]: LonLat, lang: 'en' | 'tr' = 'en'): string {
+  const lonStr = `${Math.abs(lon).toFixed(5)}°${localizeCompass(lon >= 0 ? 'E' : 'W', lang)}`
+  const latStr = `${Math.abs(lat).toFixed(5)}°${localizeCompass(lat >= 0 ? 'N' : 'S', lang)}`
   return `${lonStr}, ${latStr}`
 }
 

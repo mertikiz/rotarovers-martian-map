@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useContext, useEffect, useId, useMemo, useState } from 'react'
 import ElevationProfile from './ElevationProfile'
 import {
   computeRouteLegs,
@@ -9,12 +9,13 @@ import {
   formatDistance,
   formatDuration,
   formatLonLat,
+  localizeCompass,
   parseRouteGeoJSON,
   type ParsedRouteData,
   type RouteFeatureCollection,
 } from './walkUtils'
 import './WalkView.css'
-import { useT } from './langContext.ts'
+import { LangContext, useT } from './langContext.ts'
 
 export interface WalkViewProps {
   /**
@@ -39,6 +40,9 @@ export function WalkView({
 }: WalkViewProps) {
   const sliderId = useId()
   const t = useT()
+  const { lang } = useContext(LangContext)
+  const fmtDur = (sec: number) => formatDuration(sec, lang)
+  const fmtLL = (c: [number, number]) => formatLonLat(c, lang)
   const legLabel = (label: string) => {
     const m = label.match(/^#(\d+) (.*)$/)
     return m ? `#${m[1]} ${t(m[2])}` : t(label)
@@ -307,7 +311,7 @@ export function WalkView({
             <span>
               {t('Returning to base along the same path: {dist} ({time}) to go.', {
                 dist: formatDistance(snapshot.remainingDistanceM),
-                time: formatDuration(snapshot.remainingTimeSec),
+                time: fmtDur(snapshot.remainingTimeSec),
               })}
             </span>
           ) : (
@@ -326,7 +330,7 @@ export function WalkView({
           <span>
             {t('Before Turnaround Point: {dist} ({time}) remaining until the 50% walk threshold.', {
               dist: formatDistance(snapshot.distanceToTurnaroundM),
-              time: formatDuration(snapshot.timeToTurnaroundSec),
+              time: fmtDur(snapshot.timeToTurnaroundSec),
             })}
           </span>
         )}
@@ -477,7 +481,7 @@ export function WalkView({
         <article className="walk-card">
           <h3 className="walk-card-label">{t('1. Current Position (Where Am I)')}</h3>
           <div className="walk-card-main">
-            <p className="walk-card-value">{formatLonLat(snapshot.currentCoord)}</p>
+            <p className="walk-card-value">{fmtLL(snapshot.currentCoord)}</p>
             <p className="walk-card-sub">
               {t('Walked: {dist} ({pct}%)', {
                 dist: formatDistance(snapshot.walkedDistanceM),
@@ -486,7 +490,7 @@ export function WalkView({
               {snapshot.currentHeadingDeg !== undefined && snapshot.currentCardinal
                 ? t(' · Heading {deg}° {cardinal}', {
                     deg: Math.round(snapshot.currentHeadingDeg),
-                    cardinal: snapshot.currentCardinal,
+                    cardinal: localizeCompass(snapshot.currentCardinal, lang),
                   })
                 : ''}
             </p>
@@ -494,7 +498,7 @@ export function WalkView({
           <p className="walk-card-footer">
             {snapshot.currentStop
               ? t('At Stop #{n}: {name}', { n: snapshot.currentStop.order, name: t(snapshot.currentStop.name) })
-              : t('Elapsed time: {time}', { time: formatDuration(snapshot.elapsedTimeSec) }) +
+              : t('Elapsed time: {time}', { time: fmtDur(snapshot.elapsedTimeSec) }) +
                 (snapshot.currentSlopeDeg !== undefined
                   ? t(' · Local slope {slope}°', {
                       slope:
@@ -516,7 +520,7 @@ export function WalkView({
                 <p className="walk-card-sub">
                   {t('{dist} ahead · ETA {time}', {
                     dist: formatDistance(snapshot.distanceToNextStopM),
-                    time: formatDuration(snapshot.timeToNextStopSec ?? 0),
+                    time: fmtDur(snapshot.timeToNextStopSec ?? 0),
                   })}
                 </p>
               </>
@@ -526,7 +530,7 @@ export function WalkView({
                 <p className="walk-card-sub">
                   {t('{dist} ahead · ETA {time}', {
                     dist: formatDistance(snapshot.remainingDistanceM),
-                    time: formatDuration(snapshot.remainingTimeSec),
+                    time: fmtDur(snapshot.remainingTimeSec),
                   })}
                 </p>
               </>
@@ -558,11 +562,11 @@ export function WalkView({
               {formatDistance(snapshot.remainingDistanceM)}
             </p>
             <p className="walk-card-sub">
-              {t('Est. remaining time: {time}', { time: formatDuration(snapshot.remainingTimeSec) })}
+              {t('Est. remaining time: {time}', { time: fmtDur(snapshot.remainingTimeSec) })}
             </p>
           </div>
           <p className="walk-card-footer">
-            {t('Assumption: constant {speed} km/h ({note})', { speed: DEFAULT_WALK_SPEED_KMH, note: WALK_SPEED_NOTE })}
+            {t('Assumption: constant {speed} km/h ({note})', { speed: DEFAULT_WALK_SPEED_KMH, note: t(WALK_SPEED_NOTE) })}
           </p>
         </article>
 
@@ -575,23 +579,23 @@ export function WalkView({
             <p className="walk-card-value">
               {t('At {dist} ({time})', {
                 dist: formatDistance(snapshot.turnaroundDistanceM),
-                time: formatDuration(snapshot.turnaroundTimeSec),
+                time: fmtDur(snapshot.turnaroundTimeSec),
               })}
             </p>
             <p className="walk-card-sub">
               {snapshot.isPastTurnaround
                 ? t('Passed by {dist} ({time})', {
                     dist: formatDistance(Math.abs(snapshot.distanceToTurnaroundM)),
-                    time: formatDuration(Math.abs(snapshot.timeToTurnaroundSec)),
+                    time: fmtDur(Math.abs(snapshot.timeToTurnaroundSec)),
                   })
                 : t('{dist} ({time}) until turnaround', {
                     dist: formatDistance(snapshot.distanceToTurnaroundM),
-                    time: formatDuration(snapshot.timeToTurnaroundSec),
+                    time: fmtDur(snapshot.timeToTurnaroundSec),
                   })}
             </p>
           </div>
           <p className="walk-card-footer">
-            {t('Half-duration mark of total {time} walk', { time: formatDuration(snapshot.totalTimeSec) })}
+            {t('Half-duration mark of total {time} walk', { time: fmtDur(snapshot.totalTimeSec) })}
             {parsedRoute.isRoundTrip ? t(': the last stop, where the walk turns back') : ''}
           </p>
         </article>
@@ -638,7 +642,7 @@ export function WalkView({
                       #{stop.order} {t(stop.name)}
                     </strong>{' '}
                     <span className="walk-slider-readout">
-                      ({formatLonLat(stop.coordinates)})
+                      ({fmtLL(stop.coordinates)})
                     </span>
                     <div className="walk-slider-readout">
                       {t('At {dist} along route', { dist: formatDistance(stop.distanceAlongRouteM) })} ·{' '}
@@ -729,14 +733,14 @@ export function WalkView({
               <dt className="walk-meta-term">{t('Route Walkback to Base')}</dt>
               <dd className="walk-meta-desc">
                 {formatDistance(snapshot.walkbackDistanceM)} (
-                {formatDuration(snapshot.walkbackTimeSec)})
+                {fmtDur(snapshot.walkbackTimeSec)})
               </dd>
             </div>
             <div className="walk-meta-item">
               <dt className="walk-meta-term">{t('Assumed Walk Speed')}</dt>
               <dd className="walk-meta-desc">
-                {DEFAULT_WALK_SPEED_KMH} km/h ({DEFAULT_WALK_SPEED_MPS.toFixed(2)} m/s)
-                <span className="walk-elev-meta-sub"> · {WALK_SPEED_NOTE}</span>
+                {DEFAULT_WALK_SPEED_KMH} {t('km/h')} ({DEFAULT_WALK_SPEED_MPS.toFixed(2)} m/s)
+                <span className="walk-elev-meta-sub"> · {t(WALK_SPEED_NOTE)}</span>
               </dd>
             </div>
           </dl>
@@ -762,7 +766,7 @@ export function WalkView({
                           {t('Leg {n}: {from} → {to}', { n: leg.legNumber, from: legLabel(leg.fromLabel), to: legLabel(leg.toLabel) })}
                         </strong>
                         <div className="walk-slider-readout">
-                          {formatDistance(leg.lengthM)} · {formatDuration(leg.durationSec)}{' '}
+                          {formatDistance(leg.lengthM)} · {fmtDur(leg.durationSec)}{' '}
                           · +{leg.climbM.toFixed(1)} m / −{leg.descentM.toFixed(1)} m ·
                           {t('max slope {deg}°', { deg: leg.maxSlopeDeg.toFixed(1) })}
                         </div>

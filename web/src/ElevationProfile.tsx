@@ -163,15 +163,17 @@ export function ElevationProfile({
   const startPt = chartData.points[0]
   const endPt = chartData.points[chartData.points.length - 1]
 
-  const summaryText = `Route elevation profile from ${formatElev(chartData.minE)} (lowest point) to ${formatElev(
-    chartData.maxE,
-  )} (highest point)${
-    route.climbM !== undefined ? `, with +${route.climbM.toFixed(1)} m total climb` : ''
-  }${
-    route.descentM !== undefined ? ` and −${route.descentM.toFixed(1)} m total descent` : ''
-  }. Current astronaut position is at ${formatDistance(
-    snapshot.walkedDistanceM,
-  )}, elevation ${formatElev(currentPt.elev)}.`
+  const summaryText = t(
+    'Route elevation profile from {min} (lowest point) to {max} (highest point), with +{climb} m total climb and −{descent} m total descent. Current astronaut position is at {dist}, elevation {elev}.',
+    {
+      min: formatElev(chartData.minE),
+      max: formatElev(chartData.maxE),
+      climb: (route.climbM ?? 0).toFixed(1),
+      descent: (route.descentM ?? 0).toFixed(1),
+      dist: formatDistance(snapshot.walkedDistanceM),
+      elev: formatElev(currentPt.elev),
+    },
+  )
 
   const resolveIndexFromMouseEvent = (e: React.MouseEvent<SVGSVGElement>): number | null => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -258,7 +260,7 @@ export function ElevationProfile({
           onMouseMove={handleSvgMouseMove}
           onMouseLeave={() => setHoverIndex(null)}
         >
-          <title id={titleId}>Marswalk Route Elevation Profile</title>
+          <title id={titleId}>{t('Marswalk Route Elevation Profile')}</title>
           <desc id={descId}>{summaryText}</desc>
 
           {/* Horizontal elevation grid lines & labels */}
@@ -323,7 +325,7 @@ export function ElevationProfile({
             textAnchor="middle"
             className="walk-elev-axis-caption"
           >
-            Walked distance along route
+            {t('Walked distance along route')}
           </text>
 
           {/* Steep (15-20 deg) slope caution bands along baseline */}
@@ -386,7 +388,7 @@ export function ElevationProfile({
               onSelectIndex?.(0)
             }}
           >
-            <title>Base (Start of walk, 0 m, {formatElev(startPt.elev)})</title>
+            <title>{t('Base (start of walk, 0 m, {elev})', { elev: formatElev(startPt.elev) })}</title>
             <rect
               x={startPt.x - 6}
               y={startPt.y - 6}
@@ -414,8 +416,10 @@ export function ElevationProfile({
               }}
             >
               <title>
-                Base (End of round trip, {formatDistance(totalDistanceM)},{' '}
-                {formatElev(endPt.elev)})
+                {t('Base (end of round trip, {dist}, {elev})', {
+                  dist: formatDistance(totalDistanceM),
+                  elev: formatElev(endPt.elev),
+                })}
               </title>
               <rect
                 x={endPt.x - 6}
@@ -452,8 +456,12 @@ export function ElevationProfile({
                 }}
               >
                 <title>
-                  Stop #{stop.order}: {t(stop.name)} ({formatDistance(stop.distanceAlongRouteM)},{' '}
-                  {formatElev(pt.elev)})
+                  {t('Stop #{n}: {name} ({dist}, {elev})', {
+                    n: stop.order,
+                    name: t(stop.name),
+                    dist: formatDistance(stop.distanceAlongRouteM),
+                    elev: formatElev(pt.elev),
+                  })}
                 </title>
                 <circle
                   cx={pt.x}
