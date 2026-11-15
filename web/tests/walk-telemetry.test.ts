@@ -94,6 +94,28 @@ test('computeRouteLegs partitions the round-trip route into contiguous stop-to-s
   )
 })
 
+test('walkback distance to Base is symmetric on a round-trip route and >= straight-line separation', () => {
+  const maxIndex = parsed.coordinates.length - 1
+  const midIndex = (parsed.coordinates.length - 1) / 2
+
+  const atStart = computeWalkSnapshot(parsed, 0)
+  assert.equal(atStart.straightLineFromBaseM, 0)
+  assert.equal(atStart.walkbackDistanceM, 0)
+
+  const atTurnaround = computeWalkSnapshot(parsed, midIndex)
+  assert.ok(
+    Math.abs(atTurnaround.walkbackDistanceM - parsed.totalDistanceM / 2) < 1e-6,
+  )
+  assert.ok(
+    atTurnaround.walkbackDistanceM >= atTurnaround.straightLineFromBaseM,
+    'route walkback distance must be at least the great-circle separation from Base',
+  )
+
+  const atEnd = computeWalkSnapshot(parsed, maxIndex)
+  assert.ok(atEnd.straightLineFromBaseM < 1e-3)
+  assert.equal(atEnd.walkbackDistanceM, 0)
+})
+
 test('findSteepIntervals identifies caution intervals below the 20 deg limit', () => {
   const steep15 = findSteepIntervals(parsed, 15)
   for (const band of steep15) {

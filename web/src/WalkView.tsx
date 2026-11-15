@@ -689,6 +689,19 @@ export function WalkView({
               </div>
             )}
             <div className="walk-meta-item">
+              <dt className="walk-meta-term">Base Separation (Straight)</dt>
+              <dd className="walk-meta-desc">
+                {formatDistance(snapshot.straightLineFromBaseM)}
+              </dd>
+            </div>
+            <div className="walk-meta-item">
+              <dt className="walk-meta-term">Route Walkback to Base</dt>
+              <dd className="walk-meta-desc">
+                {formatDistance(snapshot.walkbackDistanceM)} (
+                {formatDuration(snapshot.walkbackTimeSec)})
+              </dd>
+            </div>
+            <div className="walk-meta-item">
               <dt className="walk-meta-term">Assumed Walk Speed</dt>
               <dd className="walk-meta-desc">
                 {DEFAULT_WALK_SPEED_KMH} km/h ({DEFAULT_WALK_SPEED_MPS.toFixed(2)} m/s)

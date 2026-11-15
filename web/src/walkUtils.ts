@@ -121,6 +121,12 @@ export interface WalkSnapshot {
   walkedClimbM?: number
   /** Cumulative elevation loss (m) walked from start up to currentIndex. */
   walkedDescentM?: number
+  /** Great-circle Mars distance (m) from the start Base (vertex 0) to currentCoord. */
+  straightLineFromBaseM: number
+  /** Shortest safe distance (m) back to Base along the walkable route if aborting/returning now. */
+  walkbackDistanceM: number
+  /** Estimated time (s) to walk back to Base along the route if returning now. */
+  walkbackTimeSec: number
   walkedDistanceM: number
   remainingDistanceM: number
   progressPercent: number
@@ -423,6 +429,13 @@ export function computeWalkSnapshot(
   const remainingTimeSec = remainingDistanceM / safeSpeed
   const totalTimeSec = totalDistanceM / safeSpeed
 
+  // Great-circle distance from Base (vertex 0) and shortest route walkback distance to Base
+  const straightLineFromBaseM = marsDistanceM(route.coordinates[0], currentCoord)
+  const walkbackDistanceM = route.isRoundTrip
+    ? Math.min(walkedDistanceM, remainingDistanceM)
+    : walkedDistanceM
+  const walkbackTimeSec = walkbackDistanceM / safeSpeed
+
   // Turnaround point = half of total walk duration / distance
   const turnaroundDistanceM = totalDistanceM / 2
   const turnaroundTimeSec = totalTimeSec / 2
@@ -464,6 +477,9 @@ export function computeWalkSnapshot(
     maxSlopeAhead50mDeg,
     walkedClimbM,
     walkedDescentM,
+    straightLineFromBaseM,
+    walkbackDistanceM,
+    walkbackTimeSec,
     walkedDistanceM,
     remainingDistanceM,
     progressPercent,
