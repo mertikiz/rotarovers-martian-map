@@ -14,6 +14,7 @@ import {
   type RouteFeatureCollection,
 } from './walkUtils'
 import './WalkView.css'
+import { useT } from './langContext.ts'
 
 export interface WalkViewProps {
   /**
@@ -37,6 +38,11 @@ export function WalkView({
   onPositionChange,
 }: WalkViewProps) {
   const sliderId = useId()
+  const t = useT()
+  const legLabel = (label: string) => {
+    const m = label.match(/^#(\d+) (.*)$/)
+    return m ? `#${m[1]} ${t(m[2])}` : t(label)
+  }
   const sourceUrl = initialUrl
   const [fetchedGeoJSON, setFetchedGeoJSON] = useState<RouteFeatureCollection | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -145,7 +151,7 @@ export function WalkView({
   if (effectiveLoading) {
     return (
       <section className="walk-view" aria-busy="true">
-        <p>Loading Marswalk route data…</p>
+        <p>{t('Loading Marswalk route data…')}</p>
       </section>
     )
   }
@@ -153,7 +159,7 @@ export function WalkView({
   if (effectiveError || !parsedRoute || !snapshot) {
     return (
       <section className="walk-view" role="alert">
-        <h2>Unable to load Marswalk route</h2>
+        <h2>{t('Unable to load Marswalk route')}</h2>
         <p>{effectiveError ?? 'Unknown route parsing error.'}</p>
       </section>
     )
@@ -258,12 +264,12 @@ export function WalkView({
   )
 
   return (
-    <section className="walk-view" aria-label="Marswalk Traverse Tracker">
+    <section className="walk-view" aria-label={t('Marswalk Traverse Tracker')}>
       <header className="walk-header">
         <div className="walk-title-group">
-          <h2 className="walk-title">Marswalk Traverse View</h2>
+          <h2 className="walk-title">{t('Marswalk Traverse View')}</h2>
           <p className="walk-subtitle">
-            What the astronaut follows on the walk. No GPS here: move the slider to simulate progress.
+            {t('What the astronaut follows on the walk. No GPS here: move the slider to simulate progress.')}
           </p>
         </div>
       </header>
@@ -271,7 +277,7 @@ export function WalkView({
       {parsedRoute.isSample && (
         <div className="walk-banner walk-banner--sample" role="status">
           <span>
-            <strong>Sample / Placeholder Notice:</strong>{' '}
+            <strong>{t('Sample / Placeholder Notice:')}</strong>{' '}
             {parsedRoute.sampleNote ??
               'This file contains sample or placeholder data for development.'}
           </span>
@@ -280,8 +286,9 @@ export function WalkView({
 
       {parsedRoute.outsideFootprintCount > 0 && (
         <div className="walk-banner walk-banner--turnaround-warn" role="alert">
-          Warning: {parsedRoute.outsideFootprintCount} route point(s) lie outside the study
-          DTM footprint.
+          {t('Warning: {n} route point(s) lie outside the study DTM footprint.', {
+            n: parsedRoute.outsideFootprintCount,
+          })}
         </div>
       )}
 
@@ -298,27 +305,29 @@ export function WalkView({
         {returning ? (
           snapshot.remainingDistanceM > 0.5 ? (
             <span>
-              Returning to base along the same path: {formatDistance(snapshot.remainingDistanceM)} (
-              {formatDuration(snapshot.remainingTimeSec)}) to go.
+              {t('Returning to base along the same path: {dist} ({time}) to go.', {
+                dist: formatDistance(snapshot.remainingDistanceM),
+                time: formatDuration(snapshot.remainingTimeSec),
+              })}
             </span>
           ) : (
-            <span>Back at base. Walk complete.</span>
+            <span>{t('Back at base. Walk complete.')}</span>
           )
         ) : snapshot.isPastTurnaround ? (
           <span>
-            TURNAROUND POINT PASSED: You have exceeded 50% of the planned walk duration (
-            {formatDistance( Math.abs(snapshot.distanceToTurnaroundM) )} past half-way
-            threshold).
+            {t(
+              'TURNAROUND POINT PASSED: You have exceeded 50% of the planned walk duration ({dist} past half-way threshold).',
+              { dist: formatDistance(Math.abs(snapshot.distanceToTurnaroundM)) },
+            )}
           </span>
         ) : snapshot.isAtTurnaround ? (
-          <span>
-            AT TURNAROUND POINT: You are at exactly 50% of the planned walk duration.
-          </span>
+          <span>{t('AT TURNAROUND POINT: You are at exactly 50% of the planned walk duration.')}</span>
         ) : (
           <span>
-            Before Turnaround Point: {formatDistance(snapshot.distanceToTurnaroundM)} (
-            {formatDuration(snapshot.timeToTurnaroundSec)}) remaining until the 50% walk
-            threshold.
+            {t('Before Turnaround Point: {dist} ({time}) remaining until the 50% walk threshold.', {
+              dist: formatDistance(snapshot.distanceToTurnaroundM),
+              time: formatDuration(snapshot.timeToTurnaroundSec),
+            })}
           </span>
         )}
       </div>
@@ -327,7 +336,7 @@ export function WalkView({
       <div className="walk-controls-panel">
         <div className="walk-slider-header">
           <label htmlFor={sliderId} className="walk-slider-label">
-            Simulated Astronaut Position Along Route
+            {t('Simulated Astronaut Position Along Route')}
           </label>
           <span className="walk-slider-readout">
             {formatDistance(snapshot.walkedDistanceM)} /{' '}
@@ -344,9 +353,11 @@ export function WalkView({
           max={maxIndex}
           step={1}
           value={snapshot.currentIndex}
-          aria-valuetext={`${formatDistance(snapshot.walkedDistanceM)} walked of ${formatDistance(
-            parsedRoute.totalDistanceM,
-          )} (${snapshot.progressPercent.toFixed(1)} percent)`}
+          aria-valuetext={t('{walked} walked of {total} ({pct} percent)', {
+            walked: formatDistance(snapshot.walkedDistanceM),
+            total: formatDistance(parsedRoute.totalDistanceM),
+            pct: snapshot.progressPercent.toFixed(1),
+          })}
           style={
             {
               '--attr-min': 0,
@@ -365,7 +376,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === 0}
               onClick={() => handleIndexChange(0)}
             >
-              Start
+              {t('Start')}
             </button>
             <button
               type="button"
@@ -373,7 +384,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === 0}
               onClick={() => handleIndexChange(snapshot.currentIndex - bigStep)}
             >
-              Back 5%
+              {t('Back 5%')}
             </button>
             <button
               type="button"
@@ -381,7 +392,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === 0}
               onClick={() => handleIndexChange(snapshot.currentIndex - 1)}
             >
-              Step back
+              {t('Step back')}
             </button>
             <button
               type="button"
@@ -389,7 +400,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === maxIndex}
               onClick={() => handleIndexChange(snapshot.currentIndex + 1)}
             >
-              Step forward
+              {t('Step forward')}
             </button>
             <button
               type="button"
@@ -397,7 +408,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === maxIndex}
               onClick={() => handleIndexChange(snapshot.currentIndex + bigStep)}
             >
-              Forward 5%
+              {t('Forward 5%')}
             </button>
             <button
               type="button"
@@ -405,7 +416,7 @@ export function WalkView({
               disabled={snapshot.currentIndex === maxIndex}
               onClick={() => handleIndexChange(maxIndex)}
             >
-              End
+              {t('End')}
             </button>
           </div>
 
@@ -415,9 +426,9 @@ export function WalkView({
               className={`walk-btn ${isPlaying ? 'walk-btn--playing' : ''}`}
               onClick={handleTogglePlay}
             >
-              {isPlaying ? 'Pause walk' : 'Play walk'}
+              {isPlaying ? t('Pause walk') : t('Play walk')}
             </button>
-            <div className="walk-speed-pills" role="group" aria-label="Simulation playback speed">
+            <div className="walk-speed-pills" role="group" aria-label={t('Simulation playback speed')}>
               {([10, 30, 60] as const).map((mult) => (
                 <button
                   key={mult}
@@ -437,7 +448,7 @@ export function WalkView({
               disabled={!prevStop}
               onClick={() => prevStop && handleIndexChange(prevStop.routeIndex)}
             >
-              Prev Stop
+              {t('Prev Stop')}
             </button>
             <button
               type="button"
@@ -447,7 +458,7 @@ export function WalkView({
                 nextStopByIndex && handleIndexChange(nextStopByIndex.routeIndex)
               }
             >
-              Next Stop
+              {t('Next Stop')}
             </button>
           </div>
         </div>
@@ -464,80 +475,94 @@ export function WalkView({
       <div className="walk-cards-grid">
         {/* 1. Where am I */}
         <article className="walk-card">
-          <h3 className="walk-card-label">1. Current Position (Where Am I)</h3>
+          <h3 className="walk-card-label">{t('1. Current Position (Where Am I)')}</h3>
           <div className="walk-card-main">
             <p className="walk-card-value">{formatLonLat(snapshot.currentCoord)}</p>
             <p className="walk-card-sub">
-              Walked: {formatDistance(snapshot.walkedDistanceM)} (
-              {snapshot.progressPercent.toFixed(1)}%)
+              {t('Walked: {dist} ({pct}%)', {
+                dist: formatDistance(snapshot.walkedDistanceM),
+                pct: snapshot.progressPercent.toFixed(1),
+              })}
               {snapshot.currentHeadingDeg !== undefined && snapshot.currentCardinal
-                ? ` · Heading ${Math.round(snapshot.currentHeadingDeg)}° ${snapshot.currentCardinal}`
+                ? t(' · Heading {deg}° {cardinal}', {
+                    deg: Math.round(snapshot.currentHeadingDeg),
+                    cardinal: snapshot.currentCardinal,
+                  })
                 : ''}
             </p>
           </div>
           <p className="walk-card-footer">
             {snapshot.currentStop
-              ? `At Stop #${snapshot.currentStop.order}: ${snapshot.currentStop.name}`
-              : `Elapsed time: ${formatDuration(snapshot.elapsedTimeSec)}${
-                  snapshot.currentSlopeDeg !== undefined
-                    ? ` · Local slope ${snapshot.currentSlopeDeg >= 0 ? '+' : '−'}${Math.abs(snapshot.currentSlopeDeg).toFixed(1)}°`
-                    : ''
-                }`}
+              ? t('At Stop #{n}: {name}', { n: snapshot.currentStop.order, name: t(snapshot.currentStop.name) })
+              : t('Elapsed time: {time}', { time: formatDuration(snapshot.elapsedTimeSec) }) +
+                (snapshot.currentSlopeDeg !== undefined
+                  ? t(' · Local slope {slope}°', {
+                      slope:
+                        (snapshot.currentSlopeDeg >= 0 ? '+' : '−') + Math.abs(snapshot.currentSlopeDeg).toFixed(1),
+                    })
+                  : '')}
           </p>
         </article>
 
         {/* 2. Next stop and distance to it */}
         <article className="walk-card">
-          <h3 className="walk-card-label">2. Next Stop</h3>
+          <h3 className="walk-card-label">{t('2. Next Stop')}</h3>
           <div className="walk-card-main">
             {snapshot.nextStop && snapshot.distanceToNextStopM !== null ? (
               <>
                 <p className="walk-card-value">
-                  #{snapshot.nextStop.order} {snapshot.nextStop.name}
+                  #{snapshot.nextStop.order} {t(snapshot.nextStop.name)}
                 </p>
                 <p className="walk-card-sub">
-                  {formatDistance(snapshot.distanceToNextStopM)} ahead · ETA{' '}
-                  {formatDuration(snapshot.timeToNextStopSec ?? 0)}
+                  {t('{dist} ahead · ETA {time}', {
+                    dist: formatDistance(snapshot.distanceToNextStopM),
+                    time: formatDuration(snapshot.timeToNextStopSec ?? 0),
+                  })}
                 </p>
               </>
             ) : parsedRoute.isRoundTrip && snapshot.remainingDistanceM > 0.5 ? (
               <>
-                <p className="walk-card-value">Base</p>
+                <p className="walk-card-value">{t('Base')}</p>
                 <p className="walk-card-sub">
-                  {formatDistance(snapshot.remainingDistanceM)} ahead · ETA{' '}
-                  {formatDuration(snapshot.remainingTimeSec)}
+                  {t('{dist} ahead · ETA {time}', {
+                    dist: formatDistance(snapshot.remainingDistanceM),
+                    time: formatDuration(snapshot.remainingTimeSec),
+                  })}
                 </p>
               </>
             ) : parsedRoute.isRoundTrip ? (
               <>
-                <p className="walk-card-value">Back at Base</p>
-                <p className="walk-card-sub">All planned stops visited</p>
+                <p className="walk-card-value">{t('Back at Base')}</p>
+                <p className="walk-card-sub">{t('All planned stops visited')}</p>
               </>
             ) : (
               <>
-                <p className="walk-card-value">Final Stop Reached</p>
-                <p className="walk-card-sub">All planned stops visited along route</p>
+                <p className="walk-card-value">{t('Final Stop Reached')}</p>
+                <p className="walk-card-sub">{t('All planned stops visited along route')}</p>
               </>
             )}
           </div>
           <p className="walk-card-footer">
-            Stops visited: {snapshot.completedStopsCount} / {parsedRoute.stops.length}
+            {t('Stops visited: {done} / {total}', {
+              done: snapshot.completedStopsCount,
+              total: parsedRoute.stops.length,
+            })}
           </p>
         </article>
 
         {/* 3. Total remaining distance & estimated time */}
         <article className="walk-card">
-          <h3 className="walk-card-label">3. Total Remaining Distance &amp; Time</h3>
+          <h3 className="walk-card-label">{t('3. Total Remaining Distance & Time')}</h3>
           <div className="walk-card-main">
             <p className="walk-card-value">
               {formatDistance(snapshot.remainingDistanceM)}
             </p>
             <p className="walk-card-sub">
-              Est. remaining time: {formatDuration(snapshot.remainingTimeSec)}
+              {t('Est. remaining time: {time}', { time: formatDuration(snapshot.remainingTimeSec) })}
             </p>
           </div>
           <p className="walk-card-footer">
-            Assumption: constant {DEFAULT_WALK_SPEED_KMH} km/h ({WALK_SPEED_NOTE})
+            {t('Assumption: constant {speed} km/h ({note})', { speed: DEFAULT_WALK_SPEED_KMH, note: WALK_SPEED_NOTE })}
           </p>
         </article>
 
@@ -545,25 +570,29 @@ export function WalkView({
         <article
           className={`walk-card ${snapshot.isPastTurnaround && !returning ? 'walk-card--alert' : ''}`}
         >
-          <h3 className="walk-card-label">4. Turnaround Point (50% Budget)</h3>
+          <h3 className="walk-card-label">{t('4. Turnaround Point (50% Budget)')}</h3>
           <div className="walk-card-main">
             <p className="walk-card-value">
-              At {formatDistance(snapshot.turnaroundDistanceM)} (
-              {formatDuration(snapshot.turnaroundTimeSec)})
+              {t('At {dist} ({time})', {
+                dist: formatDistance(snapshot.turnaroundDistanceM),
+                time: formatDuration(snapshot.turnaroundTimeSec),
+              })}
             </p>
             <p className="walk-card-sub">
               {snapshot.isPastTurnaround
-                ? `Passed by ${formatDistance(Math.abs(snapshot.distanceToTurnaroundM))} (${formatDuration(
-                    Math.abs(snapshot.timeToTurnaroundSec),
-                  )})`
-                : `${formatDistance(snapshot.distanceToTurnaroundM)} (${formatDuration(
-                    snapshot.timeToTurnaroundSec,
-                  )}) until turnaround`}
+                ? t('Passed by {dist} ({time})', {
+                    dist: formatDistance(Math.abs(snapshot.distanceToTurnaroundM)),
+                    time: formatDuration(Math.abs(snapshot.timeToTurnaroundSec)),
+                  })
+                : t('{dist} ({time}) until turnaround', {
+                    dist: formatDistance(snapshot.distanceToTurnaroundM),
+                    time: formatDuration(snapshot.timeToTurnaroundSec),
+                  })}
             </p>
           </div>
           <p className="walk-card-footer">
-            Half-duration mark of total {formatDuration(snapshot.totalTimeSec)} walk
-            {parsedRoute.isRoundTrip ? ': the last stop, where the walk turns back' : ''}
+            {t('Half-duration mark of total {time} walk', { time: formatDuration(snapshot.totalTimeSec) })}
+            {parsedRoute.isRoundTrip ? t(': the last stop, where the walk turns back') : ''}
           </p>
         </article>
       </div>
@@ -572,21 +601,21 @@ export function WalkView({
       <div className="walk-details-grid">
         <div className="walk-panel">
           <div className="walk-panel-header-row">
-            <h3 className="walk-panel-title">Planned Stops Along Route</h3>
+            <h3 className="walk-panel-title">{t('Planned Stops Along Route')}</h3>
             <div className="walk-step-group">
               <button
                 type="button"
                 className="walk-stop-jump-btn"
                 onClick={handleCopyTraverseLog}
               >
-                {copiedLog ? 'Copied EVA sheet!' : 'Copy EVA sheet'}
+                {copiedLog ? t('Copied EVA sheet!') : t('Copy EVA sheet')}
               </button>
               <button
                 type="button"
                 className="walk-stop-jump-btn"
                 onClick={handleDownloadTraverseLog}
               >
-                Download .md
+                {t('Download .md')}
               </button>
             </div>
           </div>
@@ -606,24 +635,24 @@ export function WalkView({
                 <li key={stop.order} className={itemClass}>
                   <div>
                     <strong>
-                      #{stop.order} {stop.name}
+                      #{stop.order} {t(stop.name)}
                     </strong>{' '}
                     <span className="walk-slider-readout">
                       ({formatLonLat(stop.coordinates)})
                     </span>
                     <div className="walk-slider-readout">
-                      At {formatDistance(stop.distanceAlongRouteM)} along route ·{' '}
+                      {t('At {dist} along route', { dist: formatDistance(stop.distanceAlongRouteM) })} ·{' '}
                       {isCurrent
-                        ? 'Here now'
+                        ? t('Here now')
                         : deltaM > 0
-                          ? `${formatDistance(deltaM)} ahead`
-                          : `Passed ${formatDistance(Math.abs(deltaM))} ago`}
+                          ? t('{dist} ahead', { dist: formatDistance(deltaM) })
+                          : t('Passed {dist} ago', { dist: formatDistance(Math.abs(deltaM)) })}
                       {stop.snappedM !== undefined && stop.snappedM > 0
-                        ? ` · snapped ${stop.snappedM.toFixed(1)} m`
+                        ? t(' · snapped {m} m', { m: stop.snappedM.toFixed(1) })
                         : ''}
                     </div>
                     {stop.whyHabitability && (
-                      <div className="walk-slider-readout">{stop.whyHabitability}</div>
+                      <div className="walk-slider-readout">{t(stop.whyHabitability)}</div>
                     )}
                   </div>
                   <button
@@ -631,7 +660,7 @@ export function WalkView({
                     className="walk-stop-jump-btn"
                     onClick={() => handleIndexChange(stop.routeIndex)}
                   >
-                    Jump here
+                    {t('Jump here')}
                   </button>
                 </li>
               )
@@ -640,11 +669,11 @@ export function WalkView({
         </div>
 
         <div className="walk-panel">
-          <h3 className="walk-panel-title">Route &amp; Terrain Parameters</h3>
+          <h3 className="walk-panel-title">{t('Route & Terrain Parameters')}</h3>
           <dl className="walk-meta-list">
             <div className="walk-meta-item">
               <dt className="walk-meta-term">
-                {parsedRoute.isRoundTrip ? 'Round-trip Length' : 'Route Length'}
+                {t(parsedRoute.isRoundTrip ? 'Round-trip Length' : 'Route Length')}
               </dt>
               <dd className="walk-meta-desc">
                 {formatDistance(parsedRoute.totalDistanceM)}
@@ -652,16 +681,18 @@ export function WalkView({
             </div>
             {parsedRoute.maxSlopeDeg !== undefined && (
               <div className="walk-meta-item">
-                <dt className="walk-meta-term">Max Route Slope</dt>
+                <dt className="walk-meta-term">{t('Max Route Slope')}</dt>
                 <dd className="walk-meta-desc">
-                  {parsedRoute.maxSlopeDeg.toFixed(2)}° (limit{' '}
-                  {parsedRoute.slopeLimitDeg ?? 20}°)
+                  {t('{deg}° (limit {limit}°)', {
+                    deg: parsedRoute.maxSlopeDeg.toFixed(2),
+                    limit: parsedRoute.slopeLimitDeg ?? 20,
+                  })}
                 </dd>
               </div>
             )}
             {parsedRoute.climbM !== undefined && (
               <div className="walk-meta-item">
-                <dt className="walk-meta-term">Total Climb / Descent</dt>
+                <dt className="walk-meta-term">{t('Total Climb / Descent')}</dt>
                 <dd className="walk-meta-desc">
                   +{parsedRoute.climbM.toFixed(1)} m / −
                   {(parsedRoute.descentM ?? 0).toFixed(1)} m
@@ -670,7 +701,7 @@ export function WalkView({
             )}
             {snapshot.walkedClimbM !== undefined && (
               <div className="walk-meta-item">
-                <dt className="walk-meta-term">Walked Climb / Descent</dt>
+                <dt className="walk-meta-term">{t('Walked Climb / Descent')}</dt>
                 <dd className="walk-meta-desc">
                   +{snapshot.walkedClimbM.toFixed(1)} m / −
                   {(snapshot.walkedDescentM ?? 0).toFixed(1)} m
@@ -679,30 +710,30 @@ export function WalkView({
             )}
             {snapshot.maxSlopeAhead50mDeg !== undefined && (
               <div className="walk-meta-item">
-                <dt className="walk-meta-term">Max Slope Next 50 m</dt>
+                <dt className="walk-meta-term">{t('Max Slope Next 50 m')}</dt>
                 <dd className="walk-meta-desc">
                   {snapshot.maxSlopeAhead50mDeg.toFixed(1)}°
                   {snapshot.maxSlopeAhead50mDeg >= 15 && (
-                    <span className="walk-elev-meta-sub"> (steep segment)</span>
+                    <span className="walk-elev-meta-sub">{t(' (steep segment)')}</span>
                   )}
                 </dd>
               </div>
             )}
             <div className="walk-meta-item">
-              <dt className="walk-meta-term">Base Separation (Straight)</dt>
+              <dt className="walk-meta-term">{t('Base Separation (Straight)')}</dt>
               <dd className="walk-meta-desc">
                 {formatDistance(snapshot.straightLineFromBaseM)}
               </dd>
             </div>
             <div className="walk-meta-item">
-              <dt className="walk-meta-term">Route Walkback to Base</dt>
+              <dt className="walk-meta-term">{t('Route Walkback to Base')}</dt>
               <dd className="walk-meta-desc">
                 {formatDistance(snapshot.walkbackDistanceM)} (
                 {formatDuration(snapshot.walkbackTimeSec)})
               </dd>
             </div>
             <div className="walk-meta-item">
-              <dt className="walk-meta-term">Assumed Walk Speed</dt>
+              <dt className="walk-meta-term">{t('Assumed Walk Speed')}</dt>
               <dd className="walk-meta-desc">
                 {DEFAULT_WALK_SPEED_KMH} km/h ({DEFAULT_WALK_SPEED_MPS.toFixed(2)} m/s)
                 <span className="walk-elev-meta-sub"> · {WALK_SPEED_NOTE}</span>
@@ -712,7 +743,7 @@ export function WalkView({
 
           {routeLegs.length > 0 && (
             <div className="walk-legs-section">
-              <h4 className="walk-legs-subtitle">Leg-by-Leg Traverse Breakdown</h4>
+              <h4 className="walk-legs-subtitle">{t('Leg-by-Leg Traverse Breakdown')}</h4>
               <ol className="walk-stops-list">
                 {routeLegs.map((leg) => {
                   const isActiveLeg =
@@ -728,12 +759,12 @@ export function WalkView({
                     <li key={leg.legNumber} className={legClass}>
                       <div>
                         <strong>
-                          Leg {leg.legNumber}: {leg.fromLabel} → {leg.toLabel}
+                          {t('Leg {n}: {from} → {to}', { n: leg.legNumber, from: legLabel(leg.fromLabel), to: legLabel(leg.toLabel) })}
                         </strong>
                         <div className="walk-slider-readout">
                           {formatDistance(leg.lengthM)} · {formatDuration(leg.durationSec)}{' '}
                           · +{leg.climbM.toFixed(1)} m / −{leg.descentM.toFixed(1)} m ·
-                          max slope {leg.maxSlopeDeg.toFixed(1)}°
+                          {t('max slope {deg}°', { deg: leg.maxSlopeDeg.toFixed(1) })}
                         </div>
                       </div>
                       <button
@@ -742,10 +773,10 @@ export function WalkView({
                         onClick={() => handleIndexChange(leg.startIndex)}
                       >
                         {isActiveLeg
-                          ? 'In progress'
+                          ? t('In progress')
                           : isCompletedLeg
-                            ? 'Completed'
-                            : 'Start leg'}
+                            ? t('Completed')
+                            : t('Start leg')}
                       </button>
                     </li>
                   )

@@ -17,6 +17,9 @@ import 'ol/ol.css'
 import { EQC, LONLAT } from './mars.ts'
 import { routeLengthM, type LonLat } from './geo.ts'
 import { getJson, safeHttpUrl } from './url.ts'
+import { ALL_LAYERS_ON, MAP_LAYERS, setLayer, type LayerKey } from './layerToggles.ts'
+import { LangSwitch } from './Lang.tsx'
+import { useT } from './langContext.ts'
 
 type LayersMeta = {
   dtm: string
@@ -97,6 +100,9 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
   const target = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const routeLayer = useRef<VectorLayer | null>(null)
+  const toggleable = useRef<Partial<Record<LayerKey, { setVisible: (on: boolean) => void }>>>({})
+  const [layersOn, setLayersOn] = useState(ALL_LAYERS_ON)
+  const t = useT()
   const [walkerFeature] = useState(() => new Feature<Point>()) // created once, not on every render
   const selectedRef = useRef<number | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
@@ -122,12 +128,15 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
           features: new GeoJSON({ dataProjection: LONLAT, featureProjection: EQC }).readFeatures(route),
         })
         const vector = new VectorLayer({ source: routeSource, style: routeStyles(selectedRef) })
+        const terrain = imageLayer('/data/hillshade.png')
+        const slope = imageLayer('/data/slope.png', 0.85)
+        toggleable.current = { terrain, slope, route: vector }
         map = new Map({
           target: target.current,
           controls: defaultControls().extend([new ScaleLine({ units: 'metric' })]),
           layers: [
-            imageLayer('/data/hillshade.png'),
-            imageLayer('/data/slope.png', 0.85),
+            terrain,
+            slope,
             vector,
             new VectorLayer({ source: new VectorSource({ features: [walkerFeature] }), style: walkerStyle() }),
           ],
@@ -180,8 +189,14 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
       map?.setTarget(undefined)
       mapRef.current = null
       routeLayer.current = null
+      toggleable.current = {}
     }
   }, [walkerFeature]) // stable (created once), so the map is still built only once
+
+  // Apply the layer switches; `summary` is set once the layers exist, so the first pass sees them too.
+  useEffect(() => {
+    for (const { key } of MAP_LAYERS) toggleable.current[key]?.setVisible(layersOn[key])
+  }, [layersOn, summary])
 
   useEffect(() => {
     walkerFeature.setGeometry(walker ? new Point(transform(walker, LONLAT, EQC)) : undefined)
@@ -210,27 +225,30 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
 
   return (
     <div className="map-shell">
-      <div ref={target} className="map" role="region" aria-label="Map of the walking route" />
-      <aside className="panel" aria-label="Route summary">
-        <h1>RotaRovers Martian Map</h1>
-        <p className="muted">Planned Marswalk in Gale crater, on its central mound (Mount Sharp)</p>
-        {error && <p className="error">Could not load map data: {error}</p>}
+      <div ref={target} className="map" role="region" aria-label={t('Map of the walking route')} />
+      <aside className="panel" aria-label={t('Route summary')}>
+        <div className="panel-title">
+          <h1>RotaRovers Martian Map</h1>
+          <LangSwitch />
+        </div>
+        <p className="muted">{t('Planned Marswalk in Gale crater, on its central mound (Mount Sharp)')}</p>
+        {error && <p className="error">{t('Could not load map data: {error}', { error })}</p>}
         {summary && (
           <>
             {summary.sample && (
-              <p className="badge">Placeholder stops: route is computed, stops are not science stops yet</p>
+              <p className="badge">{t('Placeholder stops: route is computed, stops are not science stops yet')}</p>
             )}
             <dl className="stats">
-              <dt>Round trip</dt>
+              <dt>{t('Round trip')}</dt>
               <dd>{(summary.lengthM / 1000).toFixed(2)} km</dd>
-              <dt>Steepest point (5 m grid)</dt>
+              <dt>{t('Steepest point (5 m grid)')}</dt>
               <dd>{summary.maxSlopeDeg.toFixed(1)}°</dd>
-              <dt>Climb / descent</dt>
+              <dt>{t('Climb / descent')}</dt>
               <dd>
                 {Math.round(summary.climbM)} / {Math.round(summary.descentM)} m
               </dd>
             </dl>
-            <h2 className="section">Science stops</h2>
+            <h2 className="section">{t('Science stops')}</h2>
             <ol className="stops">
               {summary.stops.map((s) => {
                 const open = s.order === selected
@@ -242,14 +260,14 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                       onClick={() => setSelected(open ? null : s.order)}
                     >
                       <span className="num">{s.order}</span>
-                      <span>{s.name}</span>
+                      <span>{t(s.name)}</span>
                     </button>
                     {open && (s.why || s.sourceUrl) && (
                       <div className="stop-detail">
-                        {s.why && <p>{s.why}</p>}
+                        {s.why && <p>{t(s.why)}</p>}
                         {s.sourceUrl && (
                           <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer">
-                            Source: {hostOf(s.sourceUrl)}
+                            {t('Source: {host}', { host: hostOf(s.sourceUrl) })}
                           </a>
                         )}
                       </div>
@@ -258,12 +276,27 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                 )
               })}
             </ol>
+            <h2 className="section">{t('Map layers')}</h2>
+            <ul className="legend layer-toggles">
+              {MAP_LAYERS.map((l) => (
+                <li key={l.key}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={layersOn[l.key]}
+                      onChange={(e) => setLayersOn((v) => setLayer(v, l.key, e.target.checked))}
+                    />
+                    {t(l.label)}
+                  </label>
+                </li>
+              ))}
+            </ul>
             <ul className="legend">
               <li>
-                <span className="swatch line" /> Route avoiding slopes over {summary.slopeLimitDeg}°, out and back
+                <span className="swatch line" /> {t('Route avoiding slopes over {deg}°, out and back', { deg: summary.slopeLimitDeg })}
               </li>
               <li>
-                <span className="swatch base" /> Base (B): start and end, at stop 1
+                <span className="swatch base" /> {t('Base (B): start and end, at stop 1')}
               </li>
               {summary.slopeClasses.map((c, i) => {
                 const next = summary.slopeClasses[i + 1]
@@ -271,14 +304,18 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                 return (
                   <li key={c.min_deg}>
                     <span className="swatch" style={{ background: `rgba(${r}, ${g}, ${b}, ${a / 255})` }} />
-                    {next ? `Slope ${c.min_deg}–${next.min_deg}°` : `Slope over ${c.min_deg}°: no-go`}
+                    {next
+                      ? t('Slope {from}–{to}°', { from: c.min_deg, to: next.min_deg })
+                      : t('Slope over {from}°: no-go', { from: c.min_deg })}
                   </li>
                 )
               })}
             </ul>
             <p className="credit">
-              Elevation and slope: HiRISE DTM {summary.dtm} (NASA/JPL/University of Arizona, via USGS
-              Astrogeology), 5 m grid.
+              {t(
+                'Elevation and slope: HiRISE DTM {dtm} (NASA/JPL/University of Arizona, via USGS Astrogeology), 5 m grid.',
+                { dtm: summary.dtm },
+              )}
             </p>
           </>
         )}

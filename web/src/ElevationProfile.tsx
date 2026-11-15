@@ -5,6 +5,7 @@ import {
   type ParsedRouteData,
   type WalkSnapshot,
 } from './walkUtils'
+import { useT } from './langContext.ts'
 
 export interface ElevationProfileProps {
   route: ParsedRouteData
@@ -26,10 +27,10 @@ function formatElev(metres: number): string {
   return `${m < 0 ? '−' : ''}${Math.abs(m)} m` // true minus sign, as in the rest of the app
 }
 
-function formatSignedSlope(deg: number): string {
+function formatSignedSlope(deg: number, t: (en: string, vars?: Record<string, string | number>) => string): string {
   const abs = Math.abs(deg).toFixed(1)
-  if (Math.abs(deg) < 0.2) return `0.0° (level)`
-  return deg > 0 ? `+${abs}° uphill` : `−${abs}° downhill`
+  if (Math.abs(deg) < 0.2) return t('0.0° (level)')
+  return deg > 0 ? t('+{deg}° uphill', { deg: abs }) : t('−{deg}° downhill', { deg: abs })
 }
 
 export function ElevationProfile({
@@ -39,6 +40,7 @@ export function ElevationProfile({
 }: ElevationProfileProps) {
   const titleId = useId()
   const descId = useId()
+  const t = useT()
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
   const elevations = route.elevationsM
@@ -215,27 +217,30 @@ export function ElevationProfile({
       <div className="walk-elevation-header">
         <div>
           <h3 className="walk-panel-title walk-elevation-title">
-            Route Elevation Profile
+            {t('Route Elevation Profile')}
           </h3>
           <p className="walk-elevation-subtitle">
             {route.isRoundTrip
-              ? `Round-trip profile (symmetric around the turnaround at Stop #${lastStop?.order ?? ''}). Click anywhere along the profile or a stop marker to jump there.`
-              : 'Elevation along the planned route. Click anywhere along the profile to jump there.'}
+              ? t(
+                  'Round-trip profile (symmetric around the turnaround at Stop #{n}). Click anywhere along the profile or a stop marker to jump there.',
+                  { n: lastStop?.order ?? '' },
+                )
+              : t('Elevation along the planned route. Click anywhere along the profile to jump there.')}
           </p>
         </div>
         <div className="walk-elevation-live" aria-live="polite">
           {hoverPt ? (
             <>
-              Inspect: <strong>{formatElev(hoverPt.elev)}</strong> at{' '}
+              {t('Inspect:')} <strong>{formatElev(hoverPt.elev)}</strong> {t('at')}{' '}
               <strong>{formatDistance(hoverPt.dist)}</strong>
             </>
           ) : (
             <>
-              Current elevation: <strong>{formatElev(currentPt.elev)}</strong>
+              {t('Current elevation:')} <strong>{formatElev(currentPt.elev)}</strong>
               {snapshot.currentSlopeDeg !== undefined && (
                 <>
-                  {' · '}Slope:{' '}
-                  <strong>{formatSignedSlope(snapshot.currentSlopeDeg)}</strong>
+                  {' · '}{t('Slope:')}{' '}
+                  <strong>{formatSignedSlope(snapshot.currentSlopeDeg, t)}</strong>
                 </>
               )}
             </>
@@ -336,7 +341,7 @@ export function ElevationProfile({
                 className="walk-elev-steep-band"
               >
                 <title>
-                  Steep slope section ({band.peakSlopeDeg.toFixed(1)}°, 15–20° caution zone)
+                  {t('Steep slope section ({deg}°, 15–20° caution zone)', { deg: band.peakSlopeDeg.toFixed(1) })}
                 </title>
               </rect>
             )
@@ -369,8 +374,8 @@ export function ElevationProfile({
             className="walk-elev-turnaround-label"
           >
             {lastStop && route.isRoundTrip
-              ? `Turnaround (Stop #${lastStop.order})`
-              : 'Turnaround (50%)'}
+              ? t('Turnaround (Stop #{n})', { n: lastStop.order })
+              : t('Turnaround (50%)')}
           </text>
 
           {/* Base markers (start at 0 m, and end at totalDistanceM if round-trip) */}
@@ -396,7 +401,7 @@ export function ElevationProfile({
               textAnchor="start"
               className="walk-elev-base-label"
             >
-              Base
+              {t('Base')}
             </text>
           </g>
 
@@ -426,7 +431,7 @@ export function ElevationProfile({
                 textAnchor="end"
                 className="walk-elev-base-label"
               >
-                Base (Return)
+                {t('Base (Return)')}
               </text>
             </g>
           )}
@@ -447,7 +452,7 @@ export function ElevationProfile({
                 }}
               >
                 <title>
-                  Stop #{stop.order}: {stop.name} ({formatDistance(stop.distanceAlongRouteM)},{' '}
+                  Stop #{stop.order}: {t(stop.name)} ({formatDistance(stop.distanceAlongRouteM)},{' '}
                   {formatElev(pt.elev)})
                 </title>
                 <circle
@@ -517,35 +522,35 @@ export function ElevationProfile({
       </div>
 
       {/* Text summary beside/below the chart for screen readers and quick reading */}
-      <dl className="walk-elevation-summary" aria-label="Elevation profile summary">
+      <dl className="walk-elevation-summary" aria-label={t('Elevation profile summary')}>
         <div className="walk-meta-item">
-          <dt className="walk-meta-term">Lowest Point</dt>
+          <dt className="walk-meta-term">{t('Lowest Point')}</dt>
           <dd className="walk-meta-desc">
             {formatElev(chartData.minE)}{' '}
             <span className="walk-elev-meta-sub">
-              (at {formatDistance(chartData.minDist)})
+              {t('(at {dist})', { dist: formatDistance(chartData.minDist) })}
             </span>
           </dd>
         </div>
         <div className="walk-meta-item">
-          <dt className="walk-meta-term">Highest Point</dt>
+          <dt className="walk-meta-term">{t('Highest Point')}</dt>
           <dd className="walk-meta-desc">
             {formatElev(chartData.maxE)}{' '}
             <span className="walk-elev-meta-sub">
-              (at {formatDistance(chartData.maxDist)})
+              {t('(at {dist})', { dist: formatDistance(chartData.maxDist) })}
             </span>
           </dd>
         </div>
         <div className="walk-meta-item">
-          <dt className="walk-meta-term">Total Climb / Descent</dt>
+          <dt className="walk-meta-term">{t('Total Climb / Descent')}</dt>
           <dd className="walk-meta-desc">
             {route.climbM !== undefined
               ? `+${route.climbM.toFixed(1)} m / −${(route.descentM ?? 0).toFixed(1)} m`
-              : `${Math.round(chartData.maxE - chartData.minE)} m span`}
+              : t('{m} m span', { m: Math.round(chartData.maxE - chartData.minE) })}
           </dd>
         </div>
         <div className="walk-meta-item">
-          <dt className="walk-meta-term">Astronaut Elevation</dt>
+          <dt className="walk-meta-term">{t('Astronaut Elevation')}</dt>
           <dd className="walk-meta-desc">
             {formatElev(currentPt.elev)}{' '}
             <span className="walk-elev-meta-sub">
