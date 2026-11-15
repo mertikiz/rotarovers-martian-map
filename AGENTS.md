@@ -27,7 +27,8 @@ Bu repoda çalışan **tüm yapay zekâ ajanları** (Claude Code, Google Antigra
 5. Değişiklikten sonra kontrolleri çalıştır (`npm run build`, Python betiği için küçük bir örnek) ve **gerçek sonucu**
    bildir; çalıştırmadığın şeye "geçti" deme.
 6. **Git:** commit/push sadece kullanıcı isteyince. Force-push, `reset --hard`, dal silme yok. Gizli bilgi ya da kişisel
-   e-posta commit etme. Büyük veri dosyaları `data/` içine (git'e girmez).
+   e-posta commit etme. Büyük veri dosyaları `data/` içine (git'e girmez). **PR'ı ajan birleştirmez:** birleştirmeyi
+   Mert yapar ya da Mert o PR için açıkça onay verir; birleştirirken dal silinmez.
 7. Commit'ten önce `git status` ve `git diff --stat` özetini göster; ilgisiz bir değişiklik varsa söyle.
 8. Aynı hatayı iki denemede çözemezsen dur, ne denediğini ve hatanın tam metnini yaz, yön iste.
 9. İş bitince kodun ne yaptığını kısa ve Türkçe anlat.
