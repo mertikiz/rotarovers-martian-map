@@ -107,6 +107,70 @@
   cursor: not-allowed;
 }
 
+.walk-btn--playing {
+  background-color: var(--walk-accent);
+  border-color: var(--walk-accent);
+  color: var(--stop-fill, #0b1220);
+  font-weight: 600;
+}
+
+.walk-btn--compact {
+  padding-block: 0.35rem;
+  padding-inline: 0.55rem;
+  font-size: 0.8rem;
+}
+
+.walk-speed-pills {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.walk-panel-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-block-end: 0.75rem;
+}
+
+.walk-panel-header-row .walk-panel-title {
+  margin-block: 0;
+}
+
+.walk-elevation-svg--interactive {
+  cursor: pointer;
+}
+
+.walk-elev-steep-band {
+  fill: #f59e0b;
+  fill-opacity: 0.16;
+}
+
+.walk-elev-hover-line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.walk-elev-hover-dot {
+  fill: var(--walk-surface);
+  stroke: var(--route);
+  stroke-width: 2;
+}
+
+.walk-legs-section {
+  margin-block-start: 1rem;
+  padding-block-start: 0.85rem;
+  border-block-start: 1px solid var(--walk-border);
+}
+
+.walk-legs-subtitle {
+  margin-block: 0 0.6rem;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
 .walk-banner {
   padding-block: 0.75rem;
   padding-inline: 1rem;

@@ -1,6 +1,6 @@
 /** UI language. English is the default and the source text; Turkish lives here, keyed by that English text, so a
- *  string with no translation simply stays English. Texts from the data files (stop names, notes) are not
- *  translated. Placeholders look like {name}. */
+ *  string with no translation simply stays English. From the data files only the science stops are translated
+ *  (below); the conditions notes stay English. Placeholders look like {name}. */
 export type Lang = 'en' | 'tr'
 
 export const TR: Record<string, string> = {
@@ -144,7 +144,39 @@ export const TR: Record<string, string> = {
   "The walk ends on terrace ground at the northern end of the route. The layered rock of Gale's central mound is exposed in the canyon walls, and the HiRISE team notes the canyon may have been carved by running water.":
     "Yürüyüş, rotanın kuzey ucundaki taraça zemininde biter. Gale'in merkezî tepesinin katmanlı kayası kanyon duvarlarında açığa çıkar; HiRISE ekibi kanyonun akan suyla oyulmuş olabileceğini belirtiyor.",
 
+  // Walk view additions from PR #4 (telemetry, playback, legs)
+  ' · Heading {deg}° {cardinal}': ' · Yön {deg}° {cardinal}',
+  ' · Local slope {slope}°': ' · Yerel eğim {slope}°',
+  'Copy EVA sheet': 'EVA sayfasını kopyala',
+  'Copied EVA sheet!': 'EVA sayfası kopyalandı!',
+  'Download .md': '.md indir',
+  'Play walk': 'Yürüyüşü oynat',
+  'Pause walk': 'Yürüyüşü durdur',
+  'Simulation playback speed': 'Canlandırma hızı',
+  'Walked Climb / Descent': 'Yürünen tırmanış / iniş',
+  'Max Slope Next 50 m': 'Sonraki 50 m en dik eğim',
+  ' (steep segment)': ' (dik bölüm)',
+  'Base Separation (Straight)': 'Üsse uzaklık (kuş uçuşu)',
+  'Route Walkback to Base': 'Rota üzerinden üsse dönüş',
+  'Leg-by-Leg Traverse Breakdown': 'Bölüm bölüm yürüyüş dökümü',
+  'Leg {n}: {from} → {to}': '{n}. bölüm: {from} → {to}',
+  'max slope {deg}°': 'en dik eğim {deg}°',
+  'In progress': 'Sürüyor',
+  Completed: 'Tamamlandı',
+  'Start leg': 'Bölüme başla',
+
   // Elevation profile
+  'Round-trip profile (symmetric around the turnaround at Stop #{n}). Click anywhere along the profile or a stop marker to jump there.':
+    'Gidiş-dönüş profili ({n}. duraktaki dönüş noktası etrafında simetrik). Oraya gitmek için profilde herhangi bir yere ya da bir durak işaretine tıklayın.',
+  'Elevation along the planned route. Click anywhere along the profile to jump there.':
+    'Planlanan rota boyunca yükselti. Oraya gitmek için profilde herhangi bir yere tıklayın.',
+  'Inspect:': 'İncele:',
+  at: '·',
+  'Slope:': 'Eğim:',
+  '0.0° (level)': '0.0° (düz)',
+  '+{deg}° uphill': '+{deg}° yokuş yukarı',
+  '−{deg}° downhill': '−{deg}° yokuş aşağı',
+  'Steep slope section ({deg}°, 15–20° caution zone)': 'Dik eğimli bölüm ({deg}°, 15–20° dikkat bölgesi)',
   'Route Elevation Profile': 'Rota yükselti profili',
   'Round-trip profile (symmetric around the turnaround at Stop #{n}). Click a stop marker, or use the "Jump here" buttons below, to move there.':
     'Gidiş-dönüş profili ({n}. duraktaki dönüş noktası etrafında simetrik). Oraya gitmek için bir durak işaretine tıklayın ya da aşağıdaki "Buraya git" düğmelerini kullanın.',

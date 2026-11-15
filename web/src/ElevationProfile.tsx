@@ -1,5 +1,10 @@
-import { useId, useMemo } from 'react'
-import { formatDistance, type ParsedRouteData, type WalkSnapshot } from './walkUtils'
+import { useId, useMemo, useState } from 'react'
+import {
+  findSteepIntervals,
+  formatDistance,
+  type ParsedRouteData,
+  type WalkSnapshot,
+} from './walkUtils'
 import { useT } from './langContext.ts'
 
 export interface ElevationProfileProps {
@@ -22,6 +27,12 @@ function formatElev(metres: number): string {
   return `${m < 0 ? '−' : ''}${Math.abs(m)} m` // true minus sign, as in the rest of the app
 }
 
+function formatSignedSlope(deg: number, t: (en: string, vars?: Record<string, string | number>) => string): string {
+  const abs = Math.abs(deg).toFixed(1)
+  if (Math.abs(deg) < 0.2) return t('0.0° (level)')
+  return deg > 0 ? t('+{deg}° uphill', { deg: abs }) : t('−{deg}° downhill', { deg: abs })
+}
+
 export function ElevationProfile({
   route,
   snapshot,
@@ -30,10 +41,13 @@ export function ElevationProfile({
   const titleId = useId()
   const descId = useId()
   const t = useT()
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
   const elevations = route.elevationsM
   const distances = route.cumulativeDistancesM
   const totalDistanceM = route.totalDistanceM
+
+  const steepBands = useMemo(() => findSteepIntervals(route, 15), [route])
 
   const chartData = useMemo(() => {
     if (!elevations || elevations.length < 2 || totalDistanceM <= 0) {
@@ -159,6 +173,45 @@ export function ElevationProfile({
     snapshot.walkedDistanceM,
   )}, elevation ${formatElev(currentPt.elev)}.`
 
+  const resolveIndexFromMouseEvent = (e: React.MouseEvent<SVGSVGElement>): number | null => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    if (rect.width <= 0) return null
+    const svgX = ((e.clientX - rect.left) / rect.width) * SVG_WIDTH
+    const ratio = Math.max(0, Math.min(1, (svgX - PAD_LEFT) / PLOT_W))
+    const targetDist = ratio * totalDistanceM
+
+    let lo = 0
+    let hi = distances.length - 1
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (distances[mid] < targetDist) lo = mid + 1
+      else hi = mid
+    }
+    if (
+      lo > 0 &&
+      Math.abs(distances[lo - 1] - targetDist) < Math.abs(distances[lo] - targetDist)
+    ) {
+      lo = lo - 1
+    }
+    return lo
+  }
+
+  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!onSelectIndex) return
+    const idx = resolveIndexFromMouseEvent(e)
+    if (idx !== null) onSelectIndex(idx)
+  }
+
+  const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const idx = resolveIndexFromMouseEvent(e)
+    setHoverIndex(idx)
+  }
+
+  const hoverPt =
+    hoverIndex !== null && hoverIndex !== walkedIdx
+      ? chartData.points[hoverIndex]
+      : null
+
   return (
     <div className="walk-panel walk-elevation-panel">
       <div className="walk-elevation-header">
@@ -169,23 +222,41 @@ export function ElevationProfile({
           <p className="walk-elevation-subtitle">
             {route.isRoundTrip
               ? t(
-                  'Round-trip profile (symmetric around the turnaround at Stop #{n}). Click a stop marker, or use the "Jump here" buttons below, to move there.',
+                  'Round-trip profile (symmetric around the turnaround at Stop #{n}). Click anywhere along the profile or a stop marker to jump there.',
                   { n: lastStop?.order ?? '' },
                 )
-              : t('Elevation along the planned route.')}
+              : t('Elevation along the planned route. Click anywhere along the profile to jump there.')}
           </p>
         </div>
         <div className="walk-elevation-live" aria-live="polite">
-          {t('Current elevation:')} <strong>{formatElev(currentPt.elev)}</strong>
+          {hoverPt ? (
+            <>
+              {t('Inspect:')} <strong>{formatElev(hoverPt.elev)}</strong> {t('at')}{' '}
+              <strong>{formatDistance(hoverPt.dist)}</strong>
+            </>
+          ) : (
+            <>
+              {t('Current elevation:')} <strong>{formatElev(currentPt.elev)}</strong>
+              {snapshot.currentSlopeDeg !== undefined && (
+                <>
+                  {' · '}{t('Slope:')}{' '}
+                  <strong>{formatSignedSlope(snapshot.currentSlopeDeg, t)}</strong>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
 
       <div className="walk-elevation-chart-wrap">
         <svg
-          className="walk-elevation-svg"
+          className="walk-elevation-svg walk-elevation-svg--interactive"
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
           role="img"
           aria-labelledby={`${titleId} ${descId}`}
+          onClick={handleSvgClick}
+          onMouseMove={handleSvgMouseMove}
+          onMouseLeave={() => setHoverIndex(null)}
         >
           <title id={titleId}>Marswalk Route Elevation Profile</title>
           <desc id={descId}>{summaryText}</desc>
@@ -255,6 +326,27 @@ export function ElevationProfile({
             Walked distance along route
           </text>
 
+          {/* Steep (15-20 deg) slope caution bands along baseline */}
+          {steepBands.map((band, idx) => {
+            const x1 = chartData.xOfDist(band.startDistanceM)
+            const x2 = chartData.xOfDist(band.endDistanceM)
+            const w = Math.max(2.5, x2 - x1)
+            return (
+              <rect
+                key={`steep-${idx}`}
+                x={x1}
+                y={PAD_TOP}
+                width={w}
+                height={PLOT_H}
+                className="walk-elev-steep-band"
+              >
+                <title>
+                  {t('Steep slope section ({deg}°, 15–20° caution zone)', { deg: band.peakSlopeDeg.toFixed(1) })}
+                </title>
+              </rect>
+            )
+          })}
+
           {/* Full route area & line (upcoming / unwalked portion) */}
           <path d={chartData.areaPath} className="walk-elev-area-full" />
           <path d={chartData.linePath} className="walk-elev-line-full" />
@@ -289,7 +381,10 @@ export function ElevationProfile({
           {/* Base markers (start at 0 m, and end at totalDistanceM if round-trip) */}
           <g
             className="walk-elev-marker-click"
-            onClick={() => onSelectIndex?.(0)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelectIndex?.(0)
+            }}
           >
             <title>Base (Start of walk, 0 m, {formatElev(startPt.elev)})</title>
             <rect
@@ -313,7 +408,10 @@ export function ElevationProfile({
           {route.isRoundTrip && (
             <g
               className="walk-elev-marker-click"
-              onClick={() => onSelectIndex?.(chartData.points.length - 1)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectIndex?.(chartData.points.length - 1)
+              }}
             >
               <title>
                 Base (End of round trip, {formatDistance(totalDistanceM)},{' '}
@@ -348,7 +446,10 @@ export function ElevationProfile({
               <g
                 key={stop.order}
                 className="walk-elev-marker-click"
-                onClick={() => onSelectIndex?.(stop.routeIndex)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectIndex?.(stop.routeIndex)
+                }}
               >
                 <title>
                   Stop #{stop.order}: {t(stop.name)} ({formatDistance(stop.distanceAlongRouteM)},{' '}
@@ -375,6 +476,25 @@ export function ElevationProfile({
               </g>
             )
           })}
+
+          {/* Hover inspection crosshair */}
+          {hoverPt && (
+            <g pointerEvents="none">
+              <line
+                x1={hoverPt.x}
+                y1={PAD_TOP}
+                x2={hoverPt.x}
+                y2={chartData.baselineY}
+                className="walk-elev-hover-line"
+              />
+              <circle
+                cx={hoverPt.x}
+                cy={hoverPt.y}
+                r={4}
+                className="walk-elev-hover-dot"
+              />
+            </g>
+          )}
 
           {/* Astronaut current position cursor & ring */}
           <g className="walk-elev-astronaut" pointerEvents="none">
