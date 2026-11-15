@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { DEFAULT_WALK_SPEED_KMH, DEFAULT_WALK_SPEED_MPS, formatDuration } from './walkUtils.ts'
 import { getJson, safeHttpUrl } from './url.ts'
-import { useT } from './langContext.ts'
+import { LangContext, useT } from './langContext.ts'
 
 type Conditions = {
   generated_utc: string
@@ -37,8 +37,8 @@ type Conditions = {
 }
 
 const deg = (c: number) => `${Math.round(c) < 0 ? '−' : ''}${Math.abs(Math.round(c))} °C` // true minus sign
-const day = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+const day = (iso: string, lang: 'en' | 'tr') =>
+  new Date(iso).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 function minutes(hhmm: string | null): number | null {
   const m = hhmm?.match(/^(\d{1,2}):(\d{2})$/)
@@ -61,6 +61,7 @@ export default function ConditionsPanel() {
   const [walkM, setWalkM] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const t = useT()
+  const { lang } = useContext(LangContext)
 
   useEffect(() => {
     let cancelled = false
@@ -95,7 +96,7 @@ export default function ConditionsPanel() {
     <section className="cond" aria-labelledby="cond-title">
       <header className="cond-head">
         <h2 id="cond-title">{t('Conditions')}</h2>
-        <p>{cond.disclaimer}</p>
+        <p>{t(cond.disclaimer)}</p>
       </header>
       <div className="cond-grid">
         <article className="cond-card">
@@ -103,7 +104,7 @@ export default function ConditionsPanel() {
           <p className="cond-when">
             {t('Curiosity REMS · sol {sol} · {date} · {km} km from the base', {
               sol: rems.sol,
-              date: day(rems.earth_date),
+              date: day(rems.earth_date, lang),
               km: rems.distance_to_base_km,
             })}
           </p>
@@ -125,7 +126,7 @@ export default function ConditionsPanel() {
             {rems.uv_index && (
               <>
                 <dt>UV</dt>
-                <dd>{rems.uv_index}</dd>
+                <dd>{t(rems.uv_index)}</dd>
               </>
             )}
             {rems.sunrise_local && rems.sunset_local && (
@@ -142,7 +143,7 @@ export default function ConditionsPanel() {
               {t(
                 'The walk takes about {time} at the assumed {speed} km/h, {fit} the roughly {hours}-hour sunrise-to-sunset window.',
                 {
-                  time: formatDuration(walkSec),
+                  time: formatDuration(walkSec, lang),
                   speed: DEFAULT_WALK_SPEED_KMH,
                   hours: daylightHours,
                   fit: t(
@@ -157,7 +158,7 @@ export default function ConditionsPanel() {
             </p>
           )}
           <p className="cond-note">
-            {rems.note}{' '}
+            {t(rems.note)}{' '}
             {t('Sunrise and sunset are shown as the feed gives them; it does not state which Mars clock it uses.')}
           </p>
           <Source url={rems.source_url} label={t('Source: REMS weather feed (CAB / NASA)')} />
@@ -168,7 +169,7 @@ export default function ConditionsPanel() {
           <p className="cond-when">
             {t('InSight · sol {sol} · {date} · {km} km away, Elysium Planitia', {
               sol: insight.sol,
-              date: day(insight.first_utc),
+              date: day(insight.first_utc, lang),
               km: Math.round(insight.distance_to_base_km),
             })}
           </p>
@@ -190,10 +191,10 @@ export default function ConditionsPanel() {
 
         <article className="cond-card">
           <h3>{t('Radiation')}</h3>
-          <p className="cond-when">{t('Curiosity RAD · {period} · Gale crater', { period: rad.period })}</p>
+          <p className="cond-when">{t('Curiosity RAD · {period} · Gale crater', { period: t(rad.period) })}</p>
           <dl>
             <dt>{t('Average dose')}</dt>
-            <dd>{rad.dose_equivalent_msv_per_day} mSv/day</dd>
+            <dd>{t('{v} mSv/day', { v: rad.dose_equivalent_msv_per_day })}</dd>
             {walkDose !== null && (
               <>
                 <dt>{t('This walk')}</dt>
@@ -202,7 +203,7 @@ export default function ConditionsPanel() {
             )}
           </dl>
           <p className="cond-note">
-            {rad.what} {t('The walk figure applies that average to the walk time; it is not a measurement.')}
+            {t(rad.what)} {t('The walk figure applies that average to the walk time; it is not a measurement.')}
           </p>
           <Source url={rad.source_url} label={t('Source: SwRI, Hassler et al. (Science, 2014)')} />
         </article>

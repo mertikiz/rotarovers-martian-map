@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useContext, useEffect, useId, useMemo, useState } from 'react'
 import ElevationProfile from './ElevationProfile'
 import {
   computeRouteLegs,
@@ -9,12 +9,48 @@ import {
   formatDistance,
   formatDuration,
   formatLonLat,
+  localizeCompass,
   parseRouteGeoJSON,
   type ParsedRouteData,
   type RouteFeatureCollection,
 } from './walkUtils'
 import './WalkView.css'
-import { useT } from './langContext.ts'
+import { LangContext, useT } from './langContext.ts'
+
+type TransportIconName = 'start' | 'prevStop' | 'back' | 'play' | 'pause' | 'forward' | 'nextStop' | 'end'
+
+const TRANSPORT_PATHS: Record<TransportIconName, string> = {
+  start: 'M6 5v14M18 6l-9 6 9 6z',
+  prevStop: 'M18 6l-6 6 6 6M12 6l-6 6 6 6',
+  back: 'M15 6l-6 6 6 6',
+  play: 'M8 5l11 7-11 7z',
+  pause: 'M8 5v14M16 5v14',
+  forward: 'M9 6l6 6-6 6',
+  nextStop: 'M6 6l6 6-6 6M12 6l6 6-6 6',
+  end: 'M18 5v14M6 6l9 6-9 6z',
+}
+
+function TransportIcon({ icon }: { icon: TransportIconName }) {
+  const filled = icon === 'play' || icon === 'start' || icon === 'end'
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+      strokeWidth={icon === 'pause' ? 3 : 2} strokeLinecap="round" strokeLinejoin="round">
+      <path d={TRANSPORT_PATHS[icon]} fill={filled ? 'currentColor' : 'none'} />
+    </svg>
+  )
+}
+
+/** Icon-only stepping control; the label is its tooltip and accessible name. */
+function IconButton({ icon, label, disabled, onClick }: {
+  icon: TransportIconName; label: string; disabled: boolean; onClick: () => void
+}) {
+  return (
+    <button type="button" className="walk-icon-btn" aria-label={label} title={label} disabled={disabled}
+      onClick={onClick}>
+      <TransportIcon icon={icon} />
+    </button>
+  )
+}
 
 export interface WalkViewProps {
   /**
@@ -39,6 +75,9 @@ export function WalkView({
 }: WalkViewProps) {
   const sliderId = useId()
   const t = useT()
+  const { lang } = useContext(LangContext)
+  const fmtDur = (sec: number) => formatDuration(sec, lang)
+  const fmtLL = (c: [number, number]) => formatLonLat(c, lang)
   const legLabel = (label: string) => {
     const m = label.match(/^#(\d+) (.*)$/)
     return m ? `#${m[1]} ${t(m[2])}` : t(label)
@@ -167,7 +206,6 @@ export function WalkView({
 
   const maxIndex = parsedRoute.coordinates.length - 1
   // Adaptive step size for "+10% / -10%" jump buttons on ~1000-point or 4-point routes
-  const bigStep = Math.max(1, Math.round(maxIndex * 0.05))
 
   const handleIndexChange = (nextIdx: number) => {
     const clamped = Math.max(0, Math.min(maxIndex, nextIdx))
@@ -307,7 +345,7 @@ export function WalkView({
             <span>
               {t('Returning to base along the same path: {dist} ({time}) to go.', {
                 dist: formatDistance(snapshot.remainingDistanceM),
-                time: formatDuration(snapshot.remainingTimeSec),
+                time: fmtDur(snapshot.remainingTimeSec),
               })}
             </span>
           ) : (
@@ -326,7 +364,7 @@ export function WalkView({
           <span>
             {t('Before Turnaround Point: {dist} ({time}) remaining until the 50% walk threshold.', {
               dist: formatDistance(snapshot.distanceToTurnaroundM),
-              time: formatDuration(snapshot.timeToTurnaroundSec),
+              time: fmtDur(snapshot.timeToTurnaroundSec),
             })}
           </span>
         )}
@@ -368,98 +406,34 @@ export function WalkView({
           onChange={(e) => handleIndexChange(Number(e.target.value))}
         />
 
-        <div className="walk-step-buttons">
-          <div className="walk-step-group">
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === 0}
-              onClick={() => handleIndexChange(0)}
-            >
-              {t('Start')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === 0}
-              onClick={() => handleIndexChange(snapshot.currentIndex - bigStep)}
-            >
-              {t('Back 5%')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === 0}
-              onClick={() => handleIndexChange(snapshot.currentIndex - 1)}
-            >
-              {t('Step back')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === maxIndex}
-              onClick={() => handleIndexChange(snapshot.currentIndex + 1)}
-            >
-              {t('Step forward')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === maxIndex}
-              onClick={() => handleIndexChange(snapshot.currentIndex + bigStep)}
-            >
-              {t('Forward 5%')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === maxIndex}
-              onClick={() => handleIndexChange(maxIndex)}
-            >
-              {t('End')}
-            </button>
-          </div>
-
-          <div className="walk-step-group">
-            <button
-              type="button"
-              className={`walk-btn ${isPlaying ? 'walk-btn--playing' : ''}`}
-              onClick={handleTogglePlay}
-            >
-              {isPlaying ? t('Pause walk') : t('Play walk')}
-            </button>
-            <div className="walk-speed-pills" role="group" aria-label={t('Simulation playback speed')}>
-              {([10, 30, 60] as const).map((mult) => (
-                <button
-                  key={mult}
-                  type="button"
-                  className={`walk-btn walk-btn--compact ${
-                    playbackMultiplier === mult ? 'walk-btn--playing' : ''
-                  }`}
-                  onClick={() => setPlaybackMultiplier(mult)}
-                >
-                  {mult}×
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={!prevStop}
-              onClick={() => prevStop && handleIndexChange(prevStop.routeIndex)}
-            >
-              {t('Prev Stop')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={!nextStopByIndex}
-              onClick={() =>
-                nextStopByIndex && handleIndexChange(nextStopByIndex.routeIndex)
-              }
-            >
-              {t('Next Stop')}
-            </button>
+        {/* Player layout: play in the middle, stepping controls mirrored on each side, speed below. */}
+        <div className="walk-transport">
+          <IconButton icon="start" label={t('Start')} disabled={snapshot.currentIndex === 0}
+            onClick={() => handleIndexChange(0)} />
+          <IconButton icon="prevStop" label={t('Prev Stop')} disabled={!prevStop}
+            onClick={() => prevStop && handleIndexChange(prevStop.routeIndex)} />
+          <IconButton icon="back" label={t('Step back')} disabled={snapshot.currentIndex === 0}
+            onClick={() => handleIndexChange(snapshot.currentIndex - 1)} />
+          <button type="button" className="walk-play" aria-pressed={isPlaying} onClick={handleTogglePlay}>
+            <TransportIcon icon={isPlaying ? 'pause' : 'play'} />
+            {isPlaying ? t('Pause walk') : t('Play walk')}
+          </button>
+          <IconButton icon="forward" label={t('Step forward')} disabled={snapshot.currentIndex === maxIndex}
+            onClick={() => handleIndexChange(snapshot.currentIndex + 1)} />
+          <IconButton icon="nextStop" label={t('Next Stop')} disabled={!nextStopByIndex}
+            onClick={() => nextStopByIndex && handleIndexChange(nextStopByIndex.routeIndex)} />
+          <IconButton icon="end" label={t('End')} disabled={snapshot.currentIndex === maxIndex}
+            onClick={() => handleIndexChange(maxIndex)} />
+        </div>
+        <div className="walk-speed-row">
+          <span id={`${sliderId}-speed`}>{t('Speed')}</span>
+          <div className="seg" role="group" aria-labelledby={`${sliderId}-speed`}>
+            {([10, 30, 60] as const).map((mult) => (
+              <button key={mult} type="button" aria-pressed={playbackMultiplier === mult}
+                onClick={() => setPlaybackMultiplier(mult)}>
+                {mult}×
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -477,7 +451,7 @@ export function WalkView({
         <article className="walk-card">
           <h3 className="walk-card-label">{t('1. Current Position (Where Am I)')}</h3>
           <div className="walk-card-main">
-            <p className="walk-card-value">{formatLonLat(snapshot.currentCoord)}</p>
+            <p className="walk-card-value">{fmtLL(snapshot.currentCoord)}</p>
             <p className="walk-card-sub">
               {t('Walked: {dist} ({pct}%)', {
                 dist: formatDistance(snapshot.walkedDistanceM),
@@ -486,7 +460,7 @@ export function WalkView({
               {snapshot.currentHeadingDeg !== undefined && snapshot.currentCardinal
                 ? t(' · Heading {deg}° {cardinal}', {
                     deg: Math.round(snapshot.currentHeadingDeg),
-                    cardinal: snapshot.currentCardinal,
+                    cardinal: localizeCompass(snapshot.currentCardinal, lang),
                   })
                 : ''}
             </p>
@@ -494,7 +468,7 @@ export function WalkView({
           <p className="walk-card-footer">
             {snapshot.currentStop
               ? t('At Stop #{n}: {name}', { n: snapshot.currentStop.order, name: t(snapshot.currentStop.name) })
-              : t('Elapsed time: {time}', { time: formatDuration(snapshot.elapsedTimeSec) }) +
+              : t('Elapsed time: {time}', { time: fmtDur(snapshot.elapsedTimeSec) }) +
                 (snapshot.currentSlopeDeg !== undefined
                   ? t(' · Local slope {slope}°', {
                       slope:
@@ -516,7 +490,7 @@ export function WalkView({
                 <p className="walk-card-sub">
                   {t('{dist} ahead · ETA {time}', {
                     dist: formatDistance(snapshot.distanceToNextStopM),
-                    time: formatDuration(snapshot.timeToNextStopSec ?? 0),
+                    time: fmtDur(snapshot.timeToNextStopSec ?? 0),
                   })}
                 </p>
               </>
@@ -526,7 +500,7 @@ export function WalkView({
                 <p className="walk-card-sub">
                   {t('{dist} ahead · ETA {time}', {
                     dist: formatDistance(snapshot.remainingDistanceM),
-                    time: formatDuration(snapshot.remainingTimeSec),
+                    time: fmtDur(snapshot.remainingTimeSec),
                   })}
                 </p>
               </>
@@ -558,11 +532,11 @@ export function WalkView({
               {formatDistance(snapshot.remainingDistanceM)}
             </p>
             <p className="walk-card-sub">
-              {t('Est. remaining time: {time}', { time: formatDuration(snapshot.remainingTimeSec) })}
+              {t('Est. remaining time: {time}', { time: fmtDur(snapshot.remainingTimeSec) })}
             </p>
           </div>
           <p className="walk-card-footer">
-            {t('Assumption: constant {speed} km/h ({note})', { speed: DEFAULT_WALK_SPEED_KMH, note: WALK_SPEED_NOTE })}
+            {t('Assumption: constant {speed} km/h ({note})', { speed: DEFAULT_WALK_SPEED_KMH, note: t(WALK_SPEED_NOTE) })}
           </p>
         </article>
 
@@ -575,23 +549,23 @@ export function WalkView({
             <p className="walk-card-value">
               {t('At {dist} ({time})', {
                 dist: formatDistance(snapshot.turnaroundDistanceM),
-                time: formatDuration(snapshot.turnaroundTimeSec),
+                time: fmtDur(snapshot.turnaroundTimeSec),
               })}
             </p>
             <p className="walk-card-sub">
               {snapshot.isPastTurnaround
                 ? t('Passed by {dist} ({time})', {
                     dist: formatDistance(Math.abs(snapshot.distanceToTurnaroundM)),
-                    time: formatDuration(Math.abs(snapshot.timeToTurnaroundSec)),
+                    time: fmtDur(Math.abs(snapshot.timeToTurnaroundSec)),
                   })
                 : t('{dist} ({time}) until turnaround', {
                     dist: formatDistance(snapshot.distanceToTurnaroundM),
-                    time: formatDuration(snapshot.timeToTurnaroundSec),
+                    time: fmtDur(snapshot.timeToTurnaroundSec),
                   })}
             </p>
           </div>
           <p className="walk-card-footer">
-            {t('Half-duration mark of total {time} walk', { time: formatDuration(snapshot.totalTimeSec) })}
+            {t('Half-duration mark of total {time} walk', { time: fmtDur(snapshot.totalTimeSec) })}
             {parsedRoute.isRoundTrip ? t(': the last stop, where the walk turns back') : ''}
           </p>
         </article>
@@ -638,7 +612,7 @@ export function WalkView({
                       #{stop.order} {t(stop.name)}
                     </strong>{' '}
                     <span className="walk-slider-readout">
-                      ({formatLonLat(stop.coordinates)})
+                      ({fmtLL(stop.coordinates)})
                     </span>
                     <div className="walk-slider-readout">
                       {t('At {dist} along route', { dist: formatDistance(stop.distanceAlongRouteM) })} ·{' '}
@@ -729,14 +703,14 @@ export function WalkView({
               <dt className="walk-meta-term">{t('Route Walkback to Base')}</dt>
               <dd className="walk-meta-desc">
                 {formatDistance(snapshot.walkbackDistanceM)} (
-                {formatDuration(snapshot.walkbackTimeSec)})
+                {fmtDur(snapshot.walkbackTimeSec)})
               </dd>
             </div>
             <div className="walk-meta-item">
               <dt className="walk-meta-term">{t('Assumed Walk Speed')}</dt>
               <dd className="walk-meta-desc">
-                {DEFAULT_WALK_SPEED_KMH} km/h ({DEFAULT_WALK_SPEED_MPS.toFixed(2)} m/s)
-                <span className="walk-elev-meta-sub"> · {WALK_SPEED_NOTE}</span>
+                {DEFAULT_WALK_SPEED_KMH} {t('km/h')} ({DEFAULT_WALK_SPEED_MPS.toFixed(2)} m/s)
+                <span className="walk-elev-meta-sub"> · {t(WALK_SPEED_NOTE)}</span>
               </dd>
             </div>
           </dl>
@@ -762,7 +736,7 @@ export function WalkView({
                           {t('Leg {n}: {from} → {to}', { n: leg.legNumber, from: legLabel(leg.fromLabel), to: legLabel(leg.toLabel) })}
                         </strong>
                         <div className="walk-slider-readout">
-                          {formatDistance(leg.lengthM)} · {formatDuration(leg.durationSec)}{' '}
+                          {formatDistance(leg.lengthM)} · {fmtDur(leg.durationSec)}{' '}
                           · +{leg.climbM.toFixed(1)} m / −{leg.descentM.toFixed(1)} m ·
                           {t('max slope {deg}°', { deg: leg.maxSlopeDeg.toFixed(1) })}
                         </div>

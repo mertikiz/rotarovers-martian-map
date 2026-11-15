@@ -1,20 +1,28 @@
 import { useState } from 'react'
-import MapView from './MapView.tsx'
+import MapView, { type Mode } from './MapView.tsx'
 import ConditionsPanel from './ConditionsPanel.tsx'
 import WalkView from './WalkView.tsx'
 import type { LonLat } from './geo.ts'
 import { LangProvider } from './Lang.tsx'
+import { ThemeProvider } from './Theme.tsx'
 
 function App() {
-  // The walk view's simulated astronaut position, also drawn on the map.
+  // The walk view's simulated astronaut position, drawn on the map in Walk mode.
   const [walker, setWalker] = useState<LonLat | null>(null)
+  const [mode, setMode] = useState<Mode>('plan')
   return (
     <LangProvider>
-      <main className="app">
-        <MapView walker={walker} />
-        <ConditionsPanel />
-        <WalkView onPositionChange={setWalker} />
-      </main>
+      <ThemeProvider>
+        <main className="app">
+          <MapView
+            walker={mode === 'walk' ? walker : null}
+            mode={mode}
+            onModeChange={setMode}
+            planExtra={<ConditionsPanel />}
+            walkPanel={<WalkView onPositionChange={setWalker} />}
+          />
+        </main>
+      </ThemeProvider>
     </LangProvider>
   )
 }

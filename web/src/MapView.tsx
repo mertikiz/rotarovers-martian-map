@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Map from 'ol/Map.js'
 import View from 'ol/View.js'
 import ImageLayer from 'ol/layer/Image.js'
@@ -8,7 +8,8 @@ import VectorSource from 'ol/source/Vector.js'
 import GeoJSON from 'ol/format/GeoJSON.js'
 import ScaleLine from 'ol/control/ScaleLine.js'
 import { defaults as defaultControls } from 'ol/control/defaults.js'
-import { Circle, Fill, RegularShape, Stroke, Style, Text } from 'ol/style.js'
+import { Circle, Icon, Stroke, Style } from 'ol/style.js'
+import type LineString from 'ol/geom/LineString.js'
 import type { FeatureLike } from 'ol/Feature.js'
 import Feature from 'ol/Feature.js'
 import Point from 'ol/geom/Point.js'
@@ -20,6 +21,21 @@ import { getJson, safeHttpUrl } from './url.ts'
 import { ALL_LAYERS_ON, MAP_LAYERS, setLayer, type LayerKey } from './layerToggles.ts'
 import { LangSwitch } from './Lang.tsx'
 import { useT } from './langContext.ts'
+import { ThemeSwitch } from './Theme.tsx'
+import { BASE_ICON, badgeSvg, smoothLine, stopIcon, withAlpha } from './track.ts'
+import { useTheme } from './themeContext.ts'
+
+export type Mode = 'plan' | 'walk'
+
+/** Map scale when Walk mode starts (metres per pixel): about 1.5 km across a laptop screen, like a navigation view. */
+const WALK_RESOLUTION = 1.5
+
+/** Below this width the panel is a bottom sheet (keep in step with `@media (max-width: 719px)` in index.css). */
+const SHEET_QUERY = '(max-width: 719px)'
+
+function reducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
 
 type LayersMeta = {
   dtm: string
@@ -52,39 +68,42 @@ function hostOf(url: string): string {
   return new URL(url).hostname.replace(/^www\./, '')
 }
 
-/** Route line plus numbered stops; the selected stop swaps to the accent fill (same swap as the stop list). */
+/** Route line (soft glow, dark casing, accent core, all with round joins) plus an icon badge per stop; the selected
+ * stop swaps to the accent fill (same swap as the stop list). */
 function routeStyles(selected: { current: number | null }): (f: FeatureLike) => Style | Style[] {
-  const casing = new Style({ stroke: new Stroke({ color: css('--route-casing'), width: 7 }) })
-  const line = new Style({ stroke: new Stroke({ color: css('--route'), width: 3.5 }) })
+  const route = css('--route')
+  const casing = css('--route-casing')
+  const fill = css('--stop-fill')
+  const ink = css('--stop-ink')
+  const stroke = (color: string, width: number) => new Stroke({ color, width, lineCap: 'round', lineJoin: 'round' })
+  const line = [
+    new Style({ stroke: stroke(withAlpha(route, 0.22), 15) }),
+    new Style({ stroke: stroke(withAlpha(casing, 0.85), 7.5) }),
+    new Style({ stroke: stroke(route, 3.5) }),
+  ]
+  // The base sits at stop 1: a small habitat badge tucked against that stop's top-left.
   const base = new Style({
-    zIndex: 0,
-    image: new RegularShape({
-      points: 4,
-      radius: 21, // a square frame around stop 1's circle
-      angle: Math.PI / 4,
-      fill: new Fill({ color: '#ffffff' }),
-      stroke: new Stroke({ color: css('--route-casing'), width: 2.5 }),
-    }),
-    text: new Text({ text: 'B', font: '700 12px system-ui, sans-serif', offsetX: -20, offsetY: -14,
-      fill: new Fill({ color: '#ffffff' }), stroke: new Stroke({ color: css('--route-casing'), width: 3 }) }),
+    zIndex: 3,
+    image: new Icon({ src: badgeSvg(BASE_ICON, { size: 24, fill: '#ffffff', ring: casing, ink: casing }), displacement: [-18, 18] }),
   })
+  const stops: Record<string, Style> = {} // OpenLayers' Map shadows the built-in Map in this file
   return (f) => {
-    if (f.get('role') === 'route') return [casing, line]
+    if (f.get('role') === 'route') return line
     if (f.get('role') === 'base') return base
     const on = f.get('order') === selected.current
-    return new Style({
-      zIndex: on ? 2 : 1,
-      image: new Circle({
-        radius: on ? 14 : 11,
-        fill: new Fill({ color: css(on ? '--route' : '--stop-fill') }),
-        stroke: new Stroke({ color: css(on ? '--stop-fill' : '--route'), width: 2.5 }),
-      }),
-      text: new Text({
-        text: String(f.get('order')),
-        font: '600 12px system-ui, sans-serif',
-        fill: new Fill({ color: css(on ? '--stop-fill' : '--stop-ink') }),
-      }),
-    })
+    const key = `${f.get('name')}|${on}`
+    let style = stops[key]
+    if (!style) {
+      const src = badgeSvg(stopIcon(String(f.get('name'))), {
+        size: on ? 38 : 32,
+        fill: on ? route : fill,
+        ring: on ? fill : route,
+        ink: on ? fill : ink,
+      })
+      style = new Style({ zIndex: on ? 2 : 1, image: new Icon({ src }) })
+      stops[key] = style
+    }
+    return style
   }
 }
 
@@ -96,10 +115,31 @@ function walkerStyle(): Style[] {
   return [ring(css('--route-casing'), 7), ring('#ffffff', 3.5)]
 }
 
-export default function MapView({ walker = null }: { walker?: LonLat | null }) {
+type MapViewProps = {
+  /** Simulated astronaut position from the walk view; null hides the walker. */
+  walker?: LonLat | null
+  mode: Mode
+  onModeChange: (m: Mode) => void
+  /** Shown under the route plan in Plan mode (the conditions). */
+  planExtra?: ReactNode
+  /** The walk view, shown in Walk mode; kept mounted in Plan mode so the walk keeps its place. */
+  walkPanel?: ReactNode
+}
+
+export default function MapView({ walker = null, mode, onModeChange, planExtra, walkPanel }: MapViewProps) {
   const target = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
   const mapRef = useRef<Map | null>(null)
   const routeLayer = useRef<VectorLayer | null>(null)
+  const walkerLayer = useRef<VectorLayer | null>(null)
+  const routeExtent = useRef<number[] | null>(null)
+  const { theme } = useTheme()
+  // Walk mode follows the walker until the user drags the map; the button re-locks it.
+  const [follow, setFollow] = useState(true)
+  const followRef = useRef(true)
+  const modeRef = useRef(mode)
+  const walkerRef = useRef(walker)
+  const fitted = useRef(false)
   const toggleable = useRef<Partial<Record<LayerKey, { setVisible: (on: boolean) => void }>>>({})
   const [layersOn, setLayersOn] = useState(ALL_LAYERS_ON)
   const t = useT()
@@ -127,24 +167,34 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
         const routeSource = new VectorSource({
           features: new GeoJSON({ dataProjection: LONLAT, featureProjection: EQC }).readFeatures(route),
         })
+        // Draw the route smoothed; the computed geometry stays in route.geojson for lengths and the walker.
+        for (const f of routeSource.getFeatures()) {
+          if (f.get('role') === 'route') {
+            const g = f.getGeometry() as LineString
+            g.setCoordinates(smoothLine(g.getCoordinates()))
+          }
+        }
         const vector = new VectorLayer({ source: routeSource, style: routeStyles(selectedRef) })
         const terrain = imageLayer('/data/hillshade.png')
         const slope = imageLayer('/data/slope.png', 0.85)
         toggleable.current = { terrain, slope, route: vector }
+        const walkerVector = new VectorLayer({ source: new VectorSource({ features: [walkerFeature] }), style: walkerStyle() })
         map = new Map({
           target: target.current,
           controls: defaultControls().extend([new ScaleLine({ units: 'metric' })]),
-          layers: [
-            terrain,
-            slope,
-            vector,
-            new VectorLayer({ source: new VectorSource({ features: [walkerFeature] }), style: walkerStyle() }),
-          ],
+          layers: [terrain, slope, vector, walkerVector],
           view: new View({ projection: EQC, extent: layers.extent, constrainOnlyCenter: true, maxZoom: 22 }),
         })
-        // Keep the route clear of the summary panel when there is room beside it.
-        const besidePanel = target.current.clientWidth >= 720 ? 360 : 48
-        map.getView().fit(routeSource.getExtent() ?? layers.extent, { padding: [48, 48, 48, besidePanel] })
+        walkerLayer.current = walkerVector
+        routeExtent.current = routeSource.getExtent() ?? layers.extent
+        // The first view is set once the panel has its content (see the mode effect), so the route clears it.
+        map.getView().fit(routeExtent.current, { padding: [48, 48, 48, 48] })
+        map.on('pointerdrag', () => {
+          if (modeRef.current === 'walk' && followRef.current) {
+            followRef.current = false
+            setFollow(false)
+          }
+        })
 
         const stopAt = (pixel: number[]) =>
           map!.forEachFeatureAtPixel(pixel, (f) => (f.get('role') === 'stop' ? f : undefined), { hitTolerance: 6 })
@@ -189,6 +239,7 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
       map?.setTarget(undefined)
       mapRef.current = null
       routeLayer.current = null
+      walkerLayer.current = null
       toggleable.current = {}
     }
   }, [walkerFeature]) // stable (created once), so the map is still built only once
@@ -198,9 +249,100 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
     for (const { key } of MAP_LAYERS) toggleable.current[key]?.setVisible(layersOn[key])
   }, [layersOn, summary])
 
+  // OpenLayers builds its control buttons once with English tooltips; keep them in the UI language.
   useEffect(() => {
+    const tips: [string, string][] = [
+      ['.ol-zoom-in', 'Zoom in'],
+      ['.ol-zoom-out', 'Zoom out'],
+      ['.ol-rotate-reset', 'Reset rotation'],
+      ['.ol-attribution button', 'Attributions'],
+    ]
+    for (const [sel, en] of tips) target.current?.querySelector(sel)?.setAttribute('title', t(en))
+  }, [t, summary])
+
+  /** Where the panel leaves the map uncovered: beside it on wide screens, above it when it is a bottom sheet. */
+  function freeArea(map: Map): { padding: number[]; center: [number, number] } | null {
+    const size = map.getSize()
+    const panel = panelRef.current
+    if (!size || !target.current) return null
+    const [w, h] = size
+    if (!panel) return { padding: [48, 48, 48, 48], center: [w / 2, h / 2] }
+    const p = panel.getBoundingClientRect()
+    const m = target.current.getBoundingClientRect()
+    // Same breakpoint as the bottom-sheet CSS; the panel's width alone misreads 720-800 px windows.
+    if (!window.matchMedia(SHEET_QUERY).matches) {
+      const right = p.right - m.left
+      return { padding: [48, 48, 48, right + 24], center: [(right + w) / 2, h / 2] }
+    }
+    const top = p.top - m.top
+    return { padding: [48, 48, h - top + 24, 48], center: [w / 2, top / 2] }
+  }
+
+  /** The view centre that puts `coord` at the middle of the uncovered area at resolution `res`. */
+  function centerFor(map: Map, coord: number[], res: number): number[] | null {
+    const area = freeArea(map)
+    const size = map.getSize()
+    if (!area || !size) return null
+    return [coord[0] + (size[0] / 2 - area.center[0]) * res, coord[1] - (size[1] / 2 - area.center[1]) * res]
+  }
+
+  function goToWalker(animate: boolean, res?: number) {
+    const map = mapRef.current
+    const at = walkerRef.current && transform(walkerRef.current, LONLAT, EQC)
+    if (!map || !at) return
+    const view = map.getView()
+    const resolution = res ?? view.getResolution() ?? WALK_RESOLUTION
+    const center = centerFor(map, at, resolution)
+    if (!center) return
+    if (animate && !reducedMotion()) view.animate({ center, resolution, duration: 550 })
+    else {
+      view.setResolution(resolution)
+      view.setCenter(center)
+    }
+  }
+
+  // Plan mode shows the whole route beside the panel; Walk mode zooms in on the walker and follows it.
+  useEffect(() => {
+    modeRef.current = mode
+    const map = mapRef.current
+    if (!map || !summary || !routeExtent.current) return
+    const animate = fitted.current && !reducedMotion()
+    fitted.current = true
+    // Wait one frame so the panel has its new width before measuring what it covers.
+    const id = requestAnimationFrame(() => {
+      map.updateSize()
+      if (mode === 'plan') {
+        const area = freeArea(map)
+        map.getView().fit(routeExtent.current!, { padding: area?.padding, duration: animate ? 550 : 0 })
+      } else {
+        followRef.current = true
+        setFollow(true)
+        goToWalker(animate, WALK_RESOLUTION)
+      }
+    })
+    return () => cancelAnimationFrame(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- helpers read refs only
+  }, [mode, summary])
+
+  useEffect(() => {
+    walkerRef.current = walker
     walkerFeature.setGeometry(walker ? new Point(transform(walker, LONLAT, EQC)) : undefined)
+    const view = mapRef.current?.getView()
+    if (mode === 'walk' && followRef.current && view && !view.getAnimating()) goToWalker(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- helpers read refs only
   }, [walker, walkerFeature])
+
+  const relock = () => {
+    followRef.current = true
+    setFollow(true)
+    goToWalker(true)
+  }
+
+  // Map markers are drawn with colours read from the CSS theme; redraw them when the theme changes.
+  useEffect(() => {
+    routeLayer.current?.setStyle(routeStyles(selectedRef))
+    walkerLayer.current?.setStyle(walkerStyle())
+  }, [theme])
 
   // Redraw the stop highlight and bring the selected stop into view if it is off screen.
   useEffect(() => {
@@ -217,24 +359,45 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
     const px = at && map.getPixelFromCoordinate(at)
     if (!at || !size || !px) return
     const visible = px[0] > 0 && px[1] > 0 && px[0] < size[0] && px[1] < size[1]
-    if (!visible) {
-      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      map.getView().animate({ center: at, duration: reduce ? 0 : 550 })
-    }
+    if (!visible) map.getView().animate({ center: at, duration: reducedMotion() ? 0 : 550 })
   }, [selected])
 
   return (
     <div className="map-shell">
       <div ref={target} className="map" role="region" aria-label={t('Map of the walking route')} />
-      <aside className="panel" aria-label={t('Route summary')}>
+      {mode === 'walk' && !follow && (
+        <button type="button" className="recenter" onClick={relock}>
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="7.5" />
+            <path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" />
+          </svg>
+          {t('Follow the walker')}
+        </button>
+      )}
+      <aside ref={panelRef} className="panel" data-mode={mode} aria-label={t('Route summary')}>
         <div className="panel-title">
           <h1>RotaRovers Martian Map</h1>
           <LangSwitch />
         </div>
         <p className="muted">{t('Planned Marswalk in Gale crater, on its central mound (Mount Sharp)')}</p>
+        <div className="panel-bar">
+          <div className="seg seg--mode" role="group" aria-label={t('Mode')}>
+            {(['plan', 'walk'] as const).map((m) => (
+              <button key={m} type="button" aria-pressed={mode === m} onClick={() => onModeChange(m)}>
+                {m === 'plan' ? t('Plan') : t('Walk')}
+              </button>
+            ))}
+          </div>
+          <ThemeSwitch />
+        </div>
         {error && <p className="error">{t('Could not load map data: {error}', { error })}</p>}
+        <div className="panel-body" hidden={mode !== 'walk'}>
+          {walkPanel}
+        </div>
         {summary && (
-          <>
+          <div className="panel-body" hidden={mode !== 'plan'}>
             {summary.sample && (
               <p className="badge">{t('Placeholder stops: route is computed, stops are not science stops yet')}</p>
             )}
@@ -259,7 +422,12 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                       aria-expanded={open}
                       onClick={() => setSelected(open ? null : s.order)}
                     >
-                      <span className="num">{s.order}</span>
+                      <span className="num" aria-label={t('Stop {n}', { n: s.order })}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none"
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d={stopIcon(s.name)} />
+                        </svg>
+                      </span>
                       <span>{t(s.name)}</span>
                     </button>
                     {open && (s.why || s.sourceUrl) && (
@@ -296,7 +464,13 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                 <span className="swatch line" /> {t('Route avoiding slopes over {deg}°, out and back', { deg: summary.slopeLimitDeg })}
               </li>
               <li>
-                <span className="swatch base" /> {t('Base (B): start and end, at stop 1')}
+                <span className="swatch base">
+                  <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+                    strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={BASE_ICON} />
+                  </svg>
+                </span>{' '}
+                {t('Base: start and end, at stop 1')}
               </li>
               {summary.slopeClasses.map((c, i) => {
                 const next = summary.slopeClasses[i + 1]
@@ -317,7 +491,8 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                 { dtm: summary.dtm },
               )}
             </p>
-          </>
+            {planExtra}
+          </div>
         )}
       </aside>
     </div>
