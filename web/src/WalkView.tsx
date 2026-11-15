@@ -17,6 +17,41 @@ import {
 import './WalkView.css'
 import { LangContext, useT } from './langContext.ts'
 
+type TransportIconName = 'start' | 'prevStop' | 'back' | 'play' | 'pause' | 'forward' | 'nextStop' | 'end'
+
+const TRANSPORT_PATHS: Record<TransportIconName, string> = {
+  start: 'M6 5v14M18 6l-9 6 9 6z',
+  prevStop: 'M18 6l-6 6 6 6M12 6l-6 6 6 6',
+  back: 'M15 6l-6 6 6 6',
+  play: 'M8 5l11 7-11 7z',
+  pause: 'M8 5v14M16 5v14',
+  forward: 'M9 6l6 6-6 6',
+  nextStop: 'M6 6l6 6-6 6M12 6l6 6-6 6',
+  end: 'M18 5v14M6 6l9 6-9 6z',
+}
+
+function TransportIcon({ icon }: { icon: TransportIconName }) {
+  const filled = icon === 'play' || icon === 'start' || icon === 'end'
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+      strokeWidth={icon === 'pause' ? 3 : 2} strokeLinecap="round" strokeLinejoin="round">
+      <path d={TRANSPORT_PATHS[icon]} fill={filled ? 'currentColor' : 'none'} />
+    </svg>
+  )
+}
+
+/** Icon-only stepping control; the label is its tooltip and accessible name. */
+function IconButton({ icon, label, disabled, onClick }: {
+  icon: TransportIconName; label: string; disabled: boolean; onClick: () => void
+}) {
+  return (
+    <button type="button" className="walk-icon-btn" aria-label={label} title={label} disabled={disabled}
+      onClick={onClick}>
+      <TransportIcon icon={icon} />
+    </button>
+  )
+}
+
 export interface WalkViewProps {
   /**
    * Optional pre-loaded GeoJSON data. If omitted, WalkView fetches from `initialUrl`.
@@ -171,7 +206,6 @@ export function WalkView({
 
   const maxIndex = parsedRoute.coordinates.length - 1
   // Adaptive step size for "+10% / -10%" jump buttons on ~1000-point or 4-point routes
-  const bigStep = Math.max(1, Math.round(maxIndex * 0.05))
 
   const handleIndexChange = (nextIdx: number) => {
     const clamped = Math.max(0, Math.min(maxIndex, nextIdx))
@@ -372,98 +406,34 @@ export function WalkView({
           onChange={(e) => handleIndexChange(Number(e.target.value))}
         />
 
-        <div className="walk-step-buttons">
-          <div className="walk-step-group">
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === 0}
-              onClick={() => handleIndexChange(0)}
-            >
-              {t('Start')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === 0}
-              onClick={() => handleIndexChange(snapshot.currentIndex - bigStep)}
-            >
-              {t('Back 5%')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === 0}
-              onClick={() => handleIndexChange(snapshot.currentIndex - 1)}
-            >
-              {t('Step back')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === maxIndex}
-              onClick={() => handleIndexChange(snapshot.currentIndex + 1)}
-            >
-              {t('Step forward')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === maxIndex}
-              onClick={() => handleIndexChange(snapshot.currentIndex + bigStep)}
-            >
-              {t('Forward 5%')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={snapshot.currentIndex === maxIndex}
-              onClick={() => handleIndexChange(maxIndex)}
-            >
-              {t('End')}
-            </button>
-          </div>
-
-          <div className="walk-step-group">
-            <button
-              type="button"
-              className={`walk-btn ${isPlaying ? 'walk-btn--playing' : ''}`}
-              onClick={handleTogglePlay}
-            >
-              {isPlaying ? t('Pause walk') : t('Play walk')}
-            </button>
-            <div className="walk-speed-pills" role="group" aria-label={t('Simulation playback speed')}>
-              {([10, 30, 60] as const).map((mult) => (
-                <button
-                  key={mult}
-                  type="button"
-                  className={`walk-btn walk-btn--compact ${
-                    playbackMultiplier === mult ? 'walk-btn--playing' : ''
-                  }`}
-                  onClick={() => setPlaybackMultiplier(mult)}
-                >
-                  {mult}×
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={!prevStop}
-              onClick={() => prevStop && handleIndexChange(prevStop.routeIndex)}
-            >
-              {t('Prev Stop')}
-            </button>
-            <button
-              type="button"
-              className="walk-btn"
-              disabled={!nextStopByIndex}
-              onClick={() =>
-                nextStopByIndex && handleIndexChange(nextStopByIndex.routeIndex)
-              }
-            >
-              {t('Next Stop')}
-            </button>
+        {/* Player layout: play in the middle, stepping controls mirrored on each side, speed below. */}
+        <div className="walk-transport">
+          <IconButton icon="start" label={t('Start')} disabled={snapshot.currentIndex === 0}
+            onClick={() => handleIndexChange(0)} />
+          <IconButton icon="prevStop" label={t('Prev Stop')} disabled={!prevStop}
+            onClick={() => prevStop && handleIndexChange(prevStop.routeIndex)} />
+          <IconButton icon="back" label={t('Step back')} disabled={snapshot.currentIndex === 0}
+            onClick={() => handleIndexChange(snapshot.currentIndex - 1)} />
+          <button type="button" className="walk-play" aria-pressed={isPlaying} onClick={handleTogglePlay}>
+            <TransportIcon icon={isPlaying ? 'pause' : 'play'} />
+            {isPlaying ? t('Pause walk') : t('Play walk')}
+          </button>
+          <IconButton icon="forward" label={t('Step forward')} disabled={snapshot.currentIndex === maxIndex}
+            onClick={() => handleIndexChange(snapshot.currentIndex + 1)} />
+          <IconButton icon="nextStop" label={t('Next Stop')} disabled={!nextStopByIndex}
+            onClick={() => nextStopByIndex && handleIndexChange(nextStopByIndex.routeIndex)} />
+          <IconButton icon="end" label={t('End')} disabled={snapshot.currentIndex === maxIndex}
+            onClick={() => handleIndexChange(maxIndex)} />
+        </div>
+        <div className="walk-speed-row">
+          <span id={`${sliderId}-speed`}>{t('Speed')}</span>
+          <div className="seg" role="group" aria-labelledby={`${sliderId}-speed`}>
+            {([10, 30, 60] as const).map((mult) => (
+              <button key={mult} type="button" aria-pressed={playbackMultiplier === mult}
+                onClick={() => setPlaybackMultiplier(mult)}>
+                {mult}×
+              </button>
+            ))}
           </div>
         </div>
       </div>

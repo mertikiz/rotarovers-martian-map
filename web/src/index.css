@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --ground: #f4f2ee;
   --surface: rgba(255, 255, 255, 0.92);
   --ink: #1c1b1a;
@@ -18,22 +18,22 @@
   --card-border: #dcd7cf;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground: #151413;
-    --surface: rgba(24, 23, 22, 0.92);
-    --ink: #f1efeb;
-    --muted: #a9a49c;
-    --map-bg: #0e0d0c;
-    --route: #22d3ee;
-    --badge-bg: #422006;
-    --badge-ink: #fde68a;
-    --error: #fca5a5;
-    --hover: rgba(241, 239, 235, 0.08);
-    --link: #67e8f9;
-    --card: #1d1c1a;
-    --card-border: #3a3734;
-  }
+/* Dark theme: <html data-theme="dark">, set from the theme switch (light / dark / system) in theme.ts. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ground: #151413;
+  --surface: rgba(24, 23, 22, 0.92);
+  --ink: #f1efeb;
+  --muted: #a9a49c;
+  --map-bg: #0e0d0c;
+  --route: #22d3ee;
+  --badge-bg: #422006;
+  --badge-ink: #fde68a;
+  --error: #fca5a5;
+  --hover: rgba(241, 239, 235, 0.08);
+  --link: #67e8f9;
+  --card: #1d1c1a;
+  --card-border: #3a3734;
 }
 
 html,
@@ -49,11 +49,11 @@ body {
   color: var(--ink);
 }
 
-/* Map fills the first screen; the walk view follows below it. */
+/* The map fills the whole screen in both modes; the panel floats on it. */
 .map-shell {
-  position: relative;
-  height: 100vh;
-  height: 100dvh;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
 }
 
 .map {
@@ -66,15 +66,107 @@ body {
   position: absolute;
   top: 12px;
   left: 12px;
-  width: min(320px, calc(100% - 72px)); /* leaves room for the zoom buttons on the right */
+  width: min(360px, calc(100% - 72px)); /* leaves room for the zoom buttons on the right */
   box-sizing: border-box;
   padding: 16px 18px;
   border-radius: 12px;
   background: var(--surface);
+  color: var(--ink);
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   max-height: calc(100% - 24px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  transition: width 0.55s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Walk mode carries the walk view's cards and profile, so the panel is wider. */
+.panel[data-mode='walk'] {
+  width: min(480px, calc(100% - 72px));
+}
+
+/* Phones: the panel becomes a bottom sheet and the map keeps the top of the screen. */
+@media (max-width: 719px) {
+  .panel,
+  .panel[data-mode='walk'] {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 55dvh;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+  }
+}
+
+.panel-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+/* The two modes and the content kept for the other mode */
+.panel-body[hidden] {
+  display: none;
+}
+
+/* Conditions inside the plan panel: the panel already gives the frame */
+.panel .cond {
+  max-width: none;
+  padding: 4px 0 0;
+}
+
+.panel .cond-head h2 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.panel .cond-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+/* The walk view inside the walk panel */
+.panel .walk-view {
+  padding: 0;
+  background: transparent;
+  max-inline-size: none;
+}
+
+/* Re-lock the map on the walker after the user drags it away (Walk mode) */
+.recenter {
+  position: absolute;
+  z-index: 2;
+  top: 84px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px 0 12px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--route);
+  color: var(--stop-fill);
+  font: 600 0.85rem system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.recenter:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .section {
@@ -125,8 +217,8 @@ body {
   display: grid;
   place-items: center;
   flex: none;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--stop-fill);
   color: var(--stop-ink);
@@ -169,8 +261,9 @@ body {
   gap: 8px;
 }
 
-/* EN | TR: rest is plain ink, the active language takes the route accent (same swap as a selected stop). */
-.lang-switch {
+/* Segmented switches (EN | TR, Plan | Walk, theme): rest is plain ink, the active choice takes the route
+   accent (same swap as a selected stop). */
+.seg {
   display: flex;
   flex: none;
   border: 1px solid var(--card-border);
@@ -178,7 +271,9 @@ body {
   overflow: hidden;
 }
 
-.lang-switch button {
+.seg button {
+  display: grid;
+  place-items: center;
   padding: 2px 7px;
   border: 0;
   background: transparent;
@@ -188,13 +283,50 @@ body {
   cursor: pointer;
 }
 
-.lang-switch button:hover {
+.seg button:hover {
   background: var(--hover);
 }
 
-.lang-switch button[aria-pressed='true'] {
+.seg button:focus-visible {
+  outline: 2px solid var(--route);
+  outline-offset: -2px;
+}
+
+.seg button[aria-pressed='true'] {
   background: var(--route);
   color: var(--stop-fill);
+}
+
+.seg--mode {
+  flex: 1;
+  border-radius: 8px;
+}
+
+.seg--mode button {
+  flex: 1;
+  min-height: 38px;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.seg--icons {
+  border-radius: 8px;
+}
+
+.seg--icons button {
+  width: 34px;
+  padding: 0;
+}
+
+@media (pointer: coarse) {
+  .seg--mode button,
+  .seg--icons button {
+    min-height: 44px;
+  }
+
+  .seg--icons button {
+    width: 44px;
+  }
 }
 
 .muted {
@@ -277,12 +409,14 @@ body {
 }
 
 .swatch.base {
-  width: 11px;
-  height: 11px;
-  margin: 0 3.5px;
-  border-radius: 1px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 0 0 2px var(--route-casing);
+  color: var(--route-casing);
+  box-shadow: inset 0 0 0 2px var(--route-casing);
 }
 
 .swatch.line {
@@ -395,4 +529,14 @@ body {
   left: auto;
   right: 12px;
   bottom: 12px;
+}
+
+/* Phones: the bottom sheet covers the bottom right, so the scale bar moves to the top left. */
+@media (max-width: 719px) {
+  .map .ol-scale-line {
+    left: 12px;
+    right: auto;
+    top: 12px;
+    bottom: auto;
+  }
 }
