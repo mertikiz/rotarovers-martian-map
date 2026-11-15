@@ -30,6 +30,9 @@ export type Mode = 'plan' | 'walk'
 /** Map scale when Walk mode starts (metres per pixel): about 1.5 km across a laptop screen, like a navigation view. */
 const WALK_RESOLUTION = 1.5
 
+/** Below this width the panel is a bottom sheet (keep in step with `@media (max-width: 719px)` in index.css). */
+const SHEET_QUERY = '(max-width: 719px)'
+
 function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
@@ -266,7 +269,8 @@ export default function MapView({ walker = null, mode, onModeChange, planExtra, 
     if (!panel) return { padding: [48, 48, 48, 48], center: [w / 2, h / 2] }
     const p = panel.getBoundingClientRect()
     const m = target.current.getBoundingClientRect()
-    if (p.width < w * 0.6) {
+    // Same breakpoint as the bottom-sheet CSS; the panel's width alone misreads 720-800 px windows.
+    if (!window.matchMedia(SHEET_QUERY).matches) {
       const right = p.right - m.left
       return { padding: [48, 48, 48, right + 24], center: [(right + w) / 2, h / 2] }
     }

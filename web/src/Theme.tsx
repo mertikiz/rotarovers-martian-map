@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   applyTheme,
   DARK_QUERY,
@@ -18,12 +18,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [pref, setPrefState] = useState<ThemePref>(readThemePref)
   const [systemDark, setSystemDark] = useState(systemIsDark)
   const theme = resolveTheme(pref, systemDark)
+  // The OS listener needs the current choice even when storage is blocked and readThemePref() says 'system'.
+  const prefRef = useRef(pref)
 
   useEffect(() => {
     if (typeof matchMedia !== 'function') return
     const mq = matchMedia(DARK_QUERY)
     const onChange = () => {
-      applyTheme(resolveTheme(readThemePref(), mq.matches))
+      applyTheme(resolveTheme(prefRef.current, mq.matches))
       setSystemDark(mq.matches)
     }
     mq.addEventListener('change', onChange)
@@ -33,6 +35,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setPref = (p: ThemePref) => {
     applyTheme(resolveTheme(p, systemDark))
     saveThemePref(p)
+    prefRef.current = p
     setPrefState(p)
   }
 
