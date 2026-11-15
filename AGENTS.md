@@ -15,8 +15,10 @@ Bu repoda çalışan **tüm yapay zekâ ajanları** (Claude Code, Google Antigra
 - Teknoloji: `web/` React + Vite + TypeScript + OpenLayers + proj4; `pipeline/` Python (rasterio, numpy).
 
 ## Kurallar
-1. **Fikir ekibe ait.** Resmî kural: SI fikir bulmak için kullanılamaz. Ajan yeni proje fikri ya da yön önermez; kod,
-   veri ve metinde yardım eder.
+1. **Ana fikir ekibe ait.** Resmî kural: projenin fikrini SI bulamaz; o fikir ekip tarafından seçildi (yukarıdaki yön).
+   Bu proje içinde ajan araştırma yapabilir, verileri ve seçenekleri artı/eksileriyle gösterebilir, bir özelliğin nasıl
+   yapılacağını önerebilir; neyin yapılacağına ekip karar verir. Kullanılan SI yardımı commit'te ve proje sayfasında
+   beyan edilir.
 2. **Önce plan göster**, onay al, sonra değiştir. Küçük adımlarla ilerle.
 3. **Veri uydurma.** URL, uç nokta, veri seti adı veya sonuç uydurma; emin değilsen "doğrulanmadı" de. Örnek/sentetik
    veriyi açıkça işaretle. Her veri kaynağını lisansıyla README'deki tabloya ekle.
