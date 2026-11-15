@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RotaRovers Martian Map — slides</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --orange: #D95F3D; --navy: #0F2133; --cream: #F6F2E9; --teal: #3FB8B2;
+    --ink: #0F2133; --muted: #4d5b69; --line: #e2dccf;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #1b2633; }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--ink); }
+  .deck { height: 100vh; overflow-y: auto; scroll-snap-type: y mandatory; }
+  .slide-wrap { height: 100vh; display: grid; place-items: center; scroll-snap-align: center; padding: 2vh 2vw; }
+  /* 16:9 slide that fits the window */
+  .slide {
+    width: min(96vw, calc(96vh * 16 / 9)); aspect-ratio: 16 / 9; position: relative; overflow: hidden;
+    background: var(--cream); border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    padding: 4.2% 5%; container-type: inline-size; display: flex; flex-direction: column;
+  }
+  .slide.dark { background: var(--navy); color: var(--cream); }
+  h1, h2, .num { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  h2 { margin: 0 0 2.2cqw; font-size: 3.3cqw; line-height: 1.1; letter-spacing: -.01em; }
+  h2 .accent { color: var(--orange); }
+  p, li { font-size: 1.55cqw; line-height: 1.45; }
+  .kicker { font: 600 1.05cqw Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--orange); margin: 0 0 1cqw; }
+  .muted { color: var(--muted); }
+  .dark .muted { color: #b8c2cc; }
+  .pageno { position: absolute; right: 2.4%; bottom: 3%; font: 500 1cqw Inter, sans-serif; color: var(--muted); }
+  .dark .pageno { color: #8b98a6; }
+  ul { margin: 0; padding-left: 1.3em; }
+  li { margin: 0 0 .6cqw; }
+  li::marker { color: var(--orange); }
+  a { color: inherit; }
+
+  /* 1 — title */
+  .title { justify-content: center; background: #fff; } /* the logo image has a white ground */
+  .logo-box { position: relative; width: 52%; margin-bottom: 2.4cqw; }
+  .logo-box img { width: 100%; display: block; mix-blend-mode: multiply; }
+  .wm { position: absolute; right: 0; bottom: -1.4cqw; font: 500 .85cqw Inter, sans-serif; color: var(--muted); letter-spacing: .04em; }
+  .title h1 { margin: 0 0 1cqw; font-size: 4.4cqw; letter-spacing: -.02em; }
+  .title .lead { font-size: 2cqw; margin: 0 0 3cqw; }
+  .meta { display: grid; grid-template-columns: auto 1fr; gap: .6cqw 2cqw; font-size: 1.45cqw; }
+  .meta dt { color: var(--muted); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 1cqw; align-self: center; }
+  .meta dd { margin: 0; }
+
+  /* 2 — two questions */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw; flex: 1; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 1cqw; padding: 2.4cqw 2.6cqw; }
+  .dark .card { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); }
+  .card h3 { margin: 0 0 1.2cqw; font: 700 1.9cqw 'Space Grotesk', sans-serif; }
+  .card .tag { display: inline-block; font: 600 .95cqw Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--cream); background: var(--orange); border-radius: 99px; padding: .3cqw 1cqw; margin-bottom: 1.2cqw; }
+  .card .tag.teal { background: var(--teal); color: var(--navy); }
+  .site { margin-top: 2.2cqw; font-size: 1.35cqw; }
+
+  /* 3 — pipeline + numbers */
+  .pipe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2cqw; margin-bottom: 2.6cqw; }
+  .step { position: relative; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); border-radius: 1cqw; padding: 1.6cqw; }
+  .step b { display: block; font: 700 1.55cqw 'Space Grotesk', sans-serif; margin-bottom: .6cqw; color: #fff; }
+  .step span { font-size: 1.2cqw; color: #c6cfd8; line-height: 1.4; display: block; }
+  .step:not(:last-child)::after { content: '→'; position: absolute; right: -1.05cqw; top: 40%; color: var(--orange); font-size: 1.6cqw; }
+  .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2cqw; margin: auto 0; }
+  .num { font-size: 5.4cqw; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+  .num small { font-size: 2cqw; color: var(--teal); }
+  .numlbl { font: 600 .95cqw Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #8b98a6; margin-top: .6cqw; }
+  .callout { margin-top: 0; border-left: .35cqw solid var(--orange); padding: .8cqw 1.6cqw; font-size: 1.5cqw; background: rgba(217,95,61,.12); border-radius: 0 .8cqw .8cqw 0; }
+
+  /* 4, 5 — screenshot slides */
+  .shot { display: grid; grid-template-columns: 1.55fr 1fr; gap: 3cqw; flex: 1; min-height: 0; }
+  .shot figure { margin: 0; border-radius: 1cqw; overflow: hidden; box-shadow: 0 1cqw 3cqw rgba(15,33,51,.25); align-self: start; }
+  .shot img { width: 100%; display: block; }
+  .shot ul li { font-size: 1.42cqw; }
+
+  /* 6 — data & validity */
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; flex: 1; }
+  .three .card li { font-size: 1.28cqw; }
+  .three .card h3 { font-size: 1.65cqw; }
+
+  /* 7 — team */
+  .team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; margin-bottom: 2.4cqw; }
+  .member b { display: block; font: 700 2cqw 'Space Grotesk', sans-serif; color: #fff; margin-bottom: .4cqw; }
+  .member span { font-size: 1.3cqw; color: #c6cfd8; line-height: 1.4; }
+  .links { margin-top: auto; display: flex; gap: 3cqw; font-size: 1.4cqw; }
+  .links b { color: var(--teal); font-weight: 600; margin-right: .6cqw; }
+
+  @media print {
+    @page { size: 1600px 900px; margin: 0; }
+    html, body { background: none; }
+    .deck { height: auto; overflow: visible; }
+    .slide-wrap { height: auto; padding: 0; break-after: page; }
+    .slide { width: 1600px; border-radius: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<main class="deck">
+
+<!-- 1 -->
+<section class="slide-wrap"><div class="slide title">
+  <div class="logo-box">
+    <img src="logo.png" alt="RotaRovers — Navigate the unknown" />
+    <span class="wm">AI-generated logo (ChatGPT)</span>
+  </div>
+  <h1>RotaRovers Martian Map</h1>
+  <p class="lead">Plan a Marswalk before you step out. Follow it while you walk.</p>
+  <dl class="meta">
+    <dt>Challenge</dt><dd>Interplanetary Survival Guide: Martian Map · NASA Space Apps Challenge 2026</dd>
+    <dt>Team</dt><dd>RotaRovers — Mert · Ensar · Ahmet</dd>
+    <dt>Live</dt><dd><a href="https://rotarovers-martian-map.pages.dev">rotarovers-martian-map.pages.dev</a></dd>
+  </dl>
+  <span class="pageno">1 / 7</span>
+</div></section>
+
+<!-- 2 -->
+<section class="slide-wrap"><div class="slide">
+  <p class="kicker">The problem</p>
+  <h2>An astronaut on Mars has <span class="accent">two moments</span> that need a map</h2>
+  <div class="cols">
+    <div class="card">
+      <span class="tag">Before the walk</span>
+      <h3>Which route?</h3>
+      <ul>
+        <li>Reach the science stops: signs of <b>past water and habitability</b></li>
+        <li>Stay on ground a suited crew can walk: no slopes over 20°</li>
+        <li>Know the distance, climb and time before leaving the base</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag teal">During the walk</span>
+      <h3>Where am I?</h3>
+      <ul>
+        <li>Current position and heading on the route</li>
+        <li>Next stop, remaining distance and time</li>
+        <li>The <b>turn-back point</b>: half of the walk's time budget</li>
+      </ul>
+    </div>
+  </div>
+  <p class="site muted"><b>Site:</b> Gale crater, on its central mound (Mount Sharp), about 18 km from Curiosity's traverse ·
+    HiRISE terrain model <code>DTEEC_006855_1750_007501_1750_A01</code></p>
+  <span class="pageno">2 / 7</span>
+</div></section>
+
+<!-- 3 -->
+<section class="slide-wrap"><div class="slide dark">
+  <p class="kicker">How the route is made</p>
+  <h2>From NASA terrain data to a <span class="accent">walkable route</span></h2>
+  <div class="pipe">
+    <div class="step"><b>HiRISE DTM</b><span>NASA MRO elevation model of the canyon, read over HTTP</span></div>
+    <div class="step"><b>5 m slope grid</b><span>75 % of the area is under 20°, 10 % is over 30°</span></div>
+    <div class="step"><b>No-go over 20°</b><span>NASA's lunar EVA walking limit, used as a working value for Mars</span></div>
+    <div class="step"><b>Least-cost route</b><span>Through the 5 science stops and back to the base</span></div>
+  </div>
+  <div class="nums">
+    <div><div class="num">8.92<small> km</small></div><div class="numlbl">Round trip</div></div>
+    <div><div class="num">18.4<small>°</small></div><div class="numlbl">Steepest point</div></div>
+    <div><div class="num">356<small> m</small></div><div class="numlbl">Climb and descent</div></div>
+    <div><div class="num">4h 27<small>m</small></div><div class="numlbl">At 2 km/h (NASA EVA rate)</div></div>
+  </div>
+  <p class="callout">The farthest point is <b>1.74 km from the base</b> in a straight line: inside the ~2 km walking radius NASA plans
+    for Artemis III. The walked path is longer because it goes around ground steeper than 20°.</p>
+  <span class="pageno">3 / 7</span>
+</div></section>
+
+<!-- 4 -->
+<section class="slide-wrap"><div class="slide">
+  <p class="kicker">Plan mode</p>
+  <h2>Choose the route <span class="accent">before</span> the walk</h2>
+  <div class="shot">
+    <figure><img src="plan.jpg" alt="Plan mode: route, science stops and slope layers on the map" /></figure>
+    <ul>
+      <li><b>Three map layers</b> you can switch: terrain shading, slope classes (15–20° caution, over 20° no-go), route</li>
+      <li><b>Five science stops</b>, each with its reason and a source (HiRISE, LPSC papers)</li>
+      <li><b>Conditions:</b> Curiosity REMS weather, InSight wind, Curiosity RAD radiation: about 0.12 mSv for this walk</li>
+      <li>Every reading is dated and labelled as a point measurement, not a forecast</li>
+    </ul>
+  </div>
+  <span class="pageno">4 / 7</span>
+</div></section>
+
+<!-- 5 -->
+<section class="slide-wrap"><div class="slide">
+  <p class="kicker">Walk mode</p>
+  <h2>Follow the route <span class="accent">during</span> the walk</h2>
+  <div class="shot">
+    <figure><img src="walk.jpg" alt="Walk mode: the map follows the astronaut; elevation profile, position and next stop" /></figure>
+    <ul>
+      <li>The map <b>follows the astronaut</b>; drag to look around, one tap to lock back on</li>
+      <li><b>Where am I</b>, next stop, remaining distance and time, the <b>turn-back point</b></li>
+      <li>Elevation profile and the slope just ahead; leg-by-leg breakdown</li>
+      <li>EVA sheet to copy or download; English and Turkish; light and dark</li>
+      <li class="muted">No GPS on Mars yet: a slider and playback simulate the walk</li>
+    </ul>
+  </div>
+  <span class="pageno">5 / 7</span>
+</div></section>
+
+<!-- 6 -->
+<section class="slide-wrap"><div class="slide">
+  <p class="kicker">Data and validity</p>
+  <h2>Built on <span class="accent">NASA data</span>, checked by tests</h2>
+  <div class="three">
+    <div class="card">
+      <h3>NASA data</h3>
+      <ul>
+        <li>MRO HiRISE terrain model and images</li>
+        <li>Curiosity REMS weather and rover waypoints</li>
+        <li>Curiosity RAD surface radiation</li>
+        <li>InSight weather (wind)</li>
+        <li>NASA Exploration EVA ConOps: 20° slope, 2 km/h, ~2 km radius</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Checked by tests</h3>
+      <ul>
+        <li>Steepest point on the route stays under 20°</li>
+        <li>The route is continuous and inside the terrain model</li>
+        <li>Route length in the data pipeline and in the app agree (Mars radius, 3,396 km)</li>
+        <li>54 automated tests (24 Python, 30 web)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Honest limits</h3>
+      <ul>
+        <li>20° is a lunar limit; Mars has no published value yet</li>
+        <li>Weather and radiation were measured at other places and times</li>
+        <li>Walk position is simulated, not live</li>
+      </ul>
+    </div>
+  </div>
+  <span class="pageno">6 / 7</span>
+</div></section>
+
+<!-- 7 -->
+<section class="slide-wrap"><div class="slide dark">
+  <p class="kicker">Team RotaRovers</p>
+  <h2>Who built it, and <span class="accent">how</span></h2>
+  <div class="team">
+    <div class="member"><b>Mert</b><span>Data pipeline, route, map, both modes' interface, deployment</span></div>
+    <div class="member"><b>Ensar</b><span>Walk view: position, playback, telemetry, elevation profile</span></div>
+    <div class="member"><b>Ahmet</b><span>Science stops and their sources; references</span></div>
+  </div>
+  <div class="card">
+    <h3>Use of AI</h3>
+    <ul>
+      <li>The idea and every design decision came from the team.</li>
+      <li>Claude Code (Claude Opus 5.5) and Google Antigravity helped write code, tests and the Turkish translation.</li>
+      <li>The team logo was generated with ChatGPT and is marked as such.</li>
+    </ul>
+  </div>
+  <div class="links">
+    <span><b>App</b>rotarovers-martian-map.pages.dev</span>
+    <span><b>Code</b>github.com/mertikiz/rotarovers-martian-map (MIT)</span>
+  </div>
+  <span class="pageno">7 / 7</span>
+</div></section>
+
+</main>
+<script>
+  // Arrow keys / Page keys move one slide.
+  const deck = document.querySelector('.deck')
+  addEventListener('keydown', (e) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, PageDown: 1, ' ': 1, ArrowUp: -1, ArrowLeft: -1, PageUp: -1 }[e.key]
+    if (!step) return
+    e.preventDefault()
+    deck.scrollBy({ top: step * innerHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  })
+</script>
+</body>
+</html>
