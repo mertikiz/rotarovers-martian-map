@@ -1,4 +1,4 @@
-import { getDistance } from 'ol/sphere'
+import { getDistance } from 'ol/sphere.js'
 import { MARS_RADIUS_M } from './geo.ts'
 
 export { MARS_RADIUS_M }
