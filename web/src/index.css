@@ -162,6 +162,41 @@ body {
   letter-spacing: 0.01em;
 }
 
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* EN | TR: rest is plain ink, the active language takes the route accent (same swap as a selected stop). */
+.lang-switch {
+  display: flex;
+  flex: none;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.lang-switch button {
+  padding: 2px 7px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 0.7rem system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.lang-switch button:hover {
+  background: var(--hover);
+}
+
+.lang-switch button[aria-pressed='true'] {
+  background: var(--route);
+  color: var(--stop-fill);
+}
+
 .muted {
   margin: 2px 0 12px;
   color: var(--muted);
