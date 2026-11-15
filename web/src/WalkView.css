@@ -107,6 +107,41 @@
   cursor: not-allowed;
 }
 
+.walk-btn--playing {
+  background-color: var(--walk-accent);
+  border-color: var(--walk-accent);
+  color: var(--stop-fill, #0b1220);
+  font-weight: 600;
+}
+
+.walk-btn--compact {
+  padding-block: 0.35rem;
+  padding-inline: 0.55rem;
+  font-size: 0.8rem;
+}
+
+.walk-speed-pills {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.walk-panel-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-block-end: 0.75rem;
+}
+
+.walk-panel-header-row .walk-panel-title {
+  margin-block: 0;
+}
+
+.walk-elevation-svg--interactive {
+  cursor: pointer;
+}
+
 .walk-banner {
   padding-block: 0.75rem;
   padding-inline: 1rem;

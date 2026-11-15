@@ -41,6 +41,9 @@ export function WalkView({
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(!routeData)
   const [currentIndex, setCurrentIndex] = useState<number>(0)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
+  const [playbackMultiplier, setPlaybackMultiplier] = useState<10 | 30 | 60>(30)
+  const [copiedLog, setCopiedLog] = useState<boolean>(false)
 
   useEffect(() => {
     if (routeData) {
@@ -107,6 +110,32 @@ export function WalkView({
     }
   }, [snapshot, onPositionChange])
 
+  // Automated walk playback timer
+  useEffect(() => {
+    if (!isPlaying || !parsedRoute) {
+      return
+    }
+
+    const maxIdx = parsedRoute.coordinates.length - 1
+    // At 2 km/h (~0.556 m/s) and ~5.3 m per vertex, 1 vertex is ~9.5 s of real walk time.
+    // Tick interval scales with playbackMultiplier (10x, 30x, 60x).
+    const intervalMs = Math.max(40, Math.round(2400 / playbackMultiplier))
+
+    const timer = window.setInterval(() => {
+      setCurrentIndex((prev) => {
+        if (prev >= maxIdx) {
+          setIsPlaying(false)
+          return maxIdx
+        }
+        return prev + 1
+      })
+    }, intervalMs)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [isPlaying, playbackMultiplier, parsedRoute])
+
   if (effectiveLoading) {
     return (
       <section className="walk-view" aria-busy="true">
@@ -131,6 +160,53 @@ export function WalkView({
   const handleIndexChange = (nextIdx: number) => {
     const clamped = Math.max(0, Math.min(maxIndex, nextIdx))
     setCurrentIndex(clamped)
+  }
+
+  const handleTogglePlay = () => {
+    if (!isPlaying && snapshot.currentIndex >= maxIndex) {
+      setCurrentIndex(0)
+    }
+    setIsPlaying((prev) => !prev)
+  }
+
+  const handleCopyTraverseLog = () => {
+    const lines: string[] = [
+      '# RotaRovers EVA Traverse Waypoint Sheet',
+      `Route length: ${formatDistance(parsedRoute.totalDistanceM)} · Assumed speed: ${DEFAULT_WALK_SPEED_KMH} km/h (${WALK_SPEED_NOTE})`,
+      '',
+      '| Stop | Name | Coordinates | Distance | Elevation | ETA (from start) |',
+      '|---|---|---|---|---|---|',
+    ]
+
+    for (const s of parsedRoute.stops) {
+      const elev = parsedRoute.elevationsM?.[s.routeIndex]
+      const elevStr =
+        elev !== undefined
+          ? `${elev < 0 ? '−' : ''}${Math.abs(Math.round(elev))} m`
+          : '—'
+      const etaSec = s.distanceAlongRouteM / DEFAULT_WALK_SPEED_MPS
+      lines.push(
+        `| #${s.order} | ${s.name} | ${formatLonLat(s.coordinates)} | ${formatDistance(s.distanceAlongRouteM)} | ${elevStr} | ${formatDuration(etaSec)} |`,
+      )
+    }
+
+    if (parsedRoute.isRoundTrip) {
+      const endElev = parsedRoute.elevationsM?.[maxIndex]
+      const endElevStr =
+        endElev !== undefined
+          ? `${endElev < 0 ? '−' : ''}${Math.abs(Math.round(endElev))} m`
+          : '—'
+      lines.push(
+        `| Base (Return) | Start / End Base | ${formatLonLat(parsedRoute.coordinates[maxIndex])} | ${formatDistance(parsedRoute.totalDistanceM)} | ${endElevStr} | ${formatDuration(snapshot.totalTimeSec)} |`,
+      )
+    }
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        setCopiedLog(true)
+        window.setTimeout(() => setCopiedLog(false), 2500)
+      })
+    }
   }
 
   const returning = parsedRoute.isRoundTrip && snapshot.isPastTurnaround
@@ -297,6 +373,27 @@ export function WalkView({
           <div className="walk-step-group">
             <button
               type="button"
+              className={`walk-btn ${isPlaying ? 'walk-btn--playing' : ''}`}
+              onClick={handleTogglePlay}
+            >
+              {isPlaying ? 'Pause walk' : 'Play walk'}
+            </button>
+            <div className="walk-speed-pills" role="group" aria-label="Simulation playback speed">
+              {([10, 30, 60] as const).map((mult) => (
+                <button
+                  key={mult}
+                  type="button"
+                  className={`walk-btn walk-btn--compact ${
+                    playbackMultiplier === mult ? 'walk-btn--playing' : ''
+                  }`}
+                  onClick={() => setPlaybackMultiplier(mult)}
+                >
+                  {mult}×
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
               className="walk-btn"
               disabled={!prevStop}
               onClick={() => prevStop && handleIndexChange(prevStop.routeIndex)}
@@ -334,12 +431,19 @@ export function WalkView({
             <p className="walk-card-sub">
               Walked: {formatDistance(snapshot.walkedDistanceM)} (
               {snapshot.progressPercent.toFixed(1)}%)
+              {snapshot.currentHeadingDeg !== undefined && snapshot.currentCardinal
+                ? ` · Heading ${Math.round(snapshot.currentHeadingDeg)}° ${snapshot.currentCardinal}`
+                : ''}
             </p>
           </div>
           <p className="walk-card-footer">
             {snapshot.currentStop
               ? `At Stop #${snapshot.currentStop.order}: ${snapshot.currentStop.name}`
-              : `Elapsed time: ${formatDuration(snapshot.elapsedTimeSec)}`}
+              : `Elapsed time: ${formatDuration(snapshot.elapsedTimeSec)}${
+                  snapshot.currentSlopeDeg !== undefined
+                    ? ` · Local slope ${snapshot.currentSlopeDeg >= 0 ? '+' : '−'}${Math.abs(snapshot.currentSlopeDeg).toFixed(1)}°`
+                    : ''
+                }`}
           </p>
         </article>
 
@@ -428,7 +532,16 @@ export function WalkView({
       {/* Stops List & Route Terrain Metrics */}
       <div className="walk-details-grid">
         <div className="walk-panel">
-          <h3 className="walk-panel-title">Planned Stops Along Route</h3>
+          <div className="walk-panel-header-row">
+            <h3 className="walk-panel-title">Planned Stops Along Route</h3>
+            <button
+              type="button"
+              className="walk-stop-jump-btn"
+              onClick={handleCopyTraverseLog}
+            >
+              {copiedLog ? 'Copied EVA sheet!' : 'Copy EVA waypoint sheet'}
+            </button>
+          </div>
           <ol className="walk-stops-list">
             {parsedRoute.stops.map((stop) => {
               const deltaM = stop.distanceAlongRouteM - snapshot.walkedDistanceM
@@ -504,6 +617,26 @@ export function WalkView({
                 <dd className="walk-meta-desc">
                   +{parsedRoute.climbM.toFixed(1)} m / −
                   {(parsedRoute.descentM ?? 0).toFixed(1)} m
+                </dd>
+              </div>
+            )}
+            {snapshot.walkedClimbM !== undefined && (
+              <div className="walk-meta-item">
+                <dt className="walk-meta-term">Walked Climb / Descent</dt>
+                <dd className="walk-meta-desc">
+                  +{snapshot.walkedClimbM.toFixed(1)} m / −
+                  {(snapshot.walkedDescentM ?? 0).toFixed(1)} m
+                </dd>
+              </div>
+            )}
+            {snapshot.maxSlopeAhead50mDeg !== undefined && (
+              <div className="walk-meta-item">
+                <dt className="walk-meta-term">Max Slope Next 50 m</dt>
+                <dd className="walk-meta-desc">
+                  {snapshot.maxSlopeAhead50mDeg.toFixed(1)}°
+                  {snapshot.maxSlopeAhead50mDeg >= 15 && (
+                    <span className="walk-elev-meta-sub"> (steep segment)</span>
+                  )}
                 </dd>
               </div>
             )}
