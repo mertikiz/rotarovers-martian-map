@@ -7,263 +7,320 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --orange: #D95F3D; --navy: #0F2133; --cream: #F6F2E9; --teal: #3FB8B2;
-    --ink: #0F2133; --muted: #4d5b69; --line: #e2dccf;
+    --orange: #D95F3D; --orange-ink: #B4472A; --navy: #0F2133; --cream: #F5F3EE; --card: #FBFAF6;
+    --teal: #1F9E98; --teal-light: #3FB8B2; --ink: #0F2133; --muted: #56606b; --line: #E2DDD2; --tint: #ECE8E0;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: #1b2633; }
-  body { font-family: Inter, system-ui, sans-serif; color: var(--ink); }
+  html, body { margin: 0; background: #2b2f33; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; color: var(--ink); }
   .deck { height: 100vh; overflow-y: auto; scroll-snap-type: y mandatory; }
-  .slide-wrap { height: 100vh; display: grid; place-items: center; scroll-snap-align: center; padding: 2vh 2vw; }
-  /* 16:9 slide that fits the window */
+  .wrap { height: 100vh; display: grid; place-items: center; scroll-snap-align: center; padding: 2vh 2vw; }
   .slide {
     width: min(96vw, calc(96vh * 16 / 9)); aspect-ratio: 16 / 9; position: relative; overflow: hidden;
-    background: var(--cream); border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.35);
-    padding: 4.2% 5%; container-type: inline-size; display: flex; flex-direction: column;
+    background: var(--cream); padding: 5.4% 6.6% 0; container-type: inline-size; display: flex; flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0,0,0,.35);
   }
-  .slide.dark { background: var(--navy); color: var(--cream); }
-  h1, h2, .num { font-family: 'Space Grotesk', system-ui, sans-serif; }
-  h2 { margin: 0 0 2.2cqw; font-size: 3.3cqw; line-height: 1.1; letter-spacing: -.01em; }
-  h2 .accent { color: var(--orange); }
-  p, li { font-size: 1.55cqw; line-height: 1.45; }
-  .kicker { font: 600 1.05cqw Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--orange); margin: 0 0 1cqw; }
-  .muted { color: var(--muted); }
-  .dark .muted { color: #b8c2cc; }
-  .pageno { position: absolute; right: 2.4%; bottom: 3%; font: 500 1cqw Inter, sans-serif; color: var(--muted); }
-  .dark .pageno { color: #8b98a6; }
-  ul { margin: 0; padding-left: 1.3em; }
-  li { margin: 0 0 .6cqw; }
-  li::marker { color: var(--orange); }
-  a { color: inherit; }
+  .slide.dark { background: #13202d; color: var(--cream); }
+  h1, h2, h3, .big, .stepnum { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .kicker { margin: 0 0 1.1cqw; font: 600 1cqw 'IBM Plex Sans', sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--orange-ink); }
+  .dark .kicker { color: #9fb0c0; }
+  h2 { margin: 0 0 2.6cqw; font-size: 3.2cqw; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; }
+  p { margin: 0; }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 1.05cqw; }
+  .foot { position: absolute; left: 6.6%; right: 6.6%; bottom: 4.2%; display: flex; justify-content: space-between;
+    font-size: 1cqw; color: var(--muted); }
+  .dark .foot { color: #7e8d9b; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 1.1cqw; }
+  .caption { margin-top: 1cqw; font-size: 1.05cqw; color: var(--muted); line-height: 1.45; }
+  .caption b { font-weight: 600; }
+  .c-orange { color: var(--orange-ink); } .c-teal { color: var(--teal); }
+  .note { background: var(--tint); border-radius: .9cqw; padding: 1.2cqw 1.5cqw; font-size: 1.15cqw; line-height: 1.5; color: #3d4650; }
+  .note b { color: var(--ink); }
+  svg text { font-family: 'IBM Plex Sans', sans-serif; }
 
-  /* 1 — title */
-  .title { justify-content: center; background: #fff; } /* the logo image has a white ground */
-  .logo-box { position: relative; width: 52%; margin-bottom: 2.4cqw; }
-  .logo-box img { width: 100%; display: block; mix-blend-mode: multiply; }
-  .wm { position: absolute; right: 0; bottom: -1.4cqw; font: 500 .85cqw Inter, sans-serif; color: var(--muted); letter-spacing: .04em; }
-  .title h1 { margin: 0 0 1cqw; font-size: 4.4cqw; letter-spacing: -.02em; }
-  .title .lead { font-size: 2cqw; margin: 0 0 3cqw; }
-  .meta { display: grid; grid-template-columns: auto 1fr; gap: .6cqw 2cqw; font-size: 1.45cqw; }
-  .meta dt { color: var(--muted); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 1cqw; align-self: center; }
-  .meta dd { margin: 0; }
+  /* 1 cover */
+  .cover { display: grid; grid-template-columns: 1.35fr 1fr; gap: 2cqw; height: 100%; padding-bottom: 7%; }
+  .cover h1 { margin: 2.2cqw 0 1.6cqw; font-size: 6.4cqw; line-height: 1.02; letter-spacing: -.025em; font-weight: 700; }
+  .cover .lead { font-size: 1.75cqw; color: #b9c4ce; line-height: 1.45; max-width: 34cqw; }
+  .brand { display: flex; align-items: center; gap: 1cqw; }
+  .brand img { width: 3.4cqw; height: 3.4cqw; }
+  .brand span { font: 700 1.5cqw 'Space Grotesk', sans-serif; letter-spacing: .01em; }
+  .brand small { font-size: .8cqw; color: #7e8d9b; margin-left: .4cqw; }
+  .people { display: flex; gap: 3cqw; margin-top: auto; }
+  .people b { display: block; font-weight: 500; font-size: 1.45cqw; }
+  .people span { font-size: 1.05cqw; color: #8fa0b0; }
+  .art { align-self: center; }
 
-  /* 2 — two questions */
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw; flex: 1; }
-  .card { background: #fff; border: 1px solid var(--line); border-radius: 1cqw; padding: 2.4cqw 2.6cqw; }
-  .dark .card { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); }
-  .card h3 { margin: 0 0 1.2cqw; font: 700 1.9cqw 'Space Grotesk', sans-serif; }
-  .card .tag { display: inline-block; font: 600 .95cqw Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--cream); background: var(--orange); border-radius: 99px; padding: .3cqw 1cqw; margin-bottom: 1.2cqw; }
-  .card .tag.teal { background: var(--teal); color: var(--navy); }
-  .site { margin-top: 2.2cqw; font-size: 1.35cqw; }
+  /* 2 problem */
+  .split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 3.4cqw; align-items: start; }
+  .statement { font: 500 2cqw/1.35 'Space Grotesk', sans-serif; margin-bottom: 1.6cqw; }
+  .sub { font-size: 1.35cqw; line-height: 1.5; color: #3d4650; margin-bottom: 2cqw; }
+  .label { font: 600 .95cqw 'IBM Plex Sans', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: .8cqw; }
+  .chips { display: flex; flex-wrap: wrap; gap: .7cqw; }
+  .chip { border: 1px solid var(--line); background: var(--card); border-radius: 99px; padding: .5cqw 1.1cqw; font-size: 1.1cqw; }
 
-  /* 3 — pipeline + numbers */
-  .pipe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2cqw; margin-bottom: 2.6cqw; }
-  .step { position: relative; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); border-radius: 1cqw; padding: 1.6cqw; }
-  .step b { display: block; font: 700 1.55cqw 'Space Grotesk', sans-serif; margin-bottom: .6cqw; color: #fff; }
-  .step span { font-size: 1.2cqw; color: #c6cfd8; line-height: 1.4; display: block; }
-  .step:not(:last-child)::after { content: '→'; position: absolute; right: -1.05cqw; top: 40%; color: var(--orange); font-size: 1.6cqw; }
-  .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2cqw; margin: auto 0; }
-  .num { font-size: 5.4cqw; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
-  .num small { font-size: 2cqw; color: var(--teal); }
-  .numlbl { font: 600 .95cqw Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #8b98a6; margin-top: .6cqw; }
-  .callout { margin-top: 0; border-left: .35cqw solid var(--orange); padding: .8cqw 1.6cqw; font-size: 1.5cqw; background: rgba(217,95,61,.12); border-radius: 0 .8cqw .8cqw 0; }
+  /* 3 steps */
+  .steps { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: stretch; gap: 1.2cqw; }
+  .step { padding: 2cqw 2cqw 1.8cqw; display: flex; flex-direction: column; }
+  .stepnum { font-size: 3.2cqw; font-weight: 700; color: var(--teal); line-height: 1; margin-bottom: .8cqw; }
+  .step h3 { margin: 0 0 .8cqw; font-size: 1.9cqw; }
+  .step p { font-size: 1.25cqw; line-height: 1.5; color: #3d4650; margin-bottom: 1.2cqw; }
+  .step .mono { margin-top: auto; color: var(--orange-ink); }
+  .arrow { align-self: center; color: #8a939c; font-size: 1.8cqw; }
+  .dist { margin-top: 2.2cqw; padding: 1.4cqw 1.8cqw; }
+  .bar { display: flex; height: 2.4cqw; border-radius: .5cqw; overflow: hidden; margin: .8cqw 0 .6cqw; }
+  .bar div { display: grid; place-items: center; font: 600 1.05cqw 'IBM Plex Sans', sans-serif; color: #fff; }
 
-  /* 4, 5 — screenshot slides */
-  .shot { display: grid; grid-template-columns: 1.55fr 1fr; gap: 3cqw; flex: 1; min-height: 0; }
-  .shot figure { margin: 0; border-radius: 1cqw; overflow: hidden; box-shadow: 0 1cqw 3cqw rgba(15,33,51,.25); align-self: start; }
-  .shot img { width: 100%; display: block; }
-  .shot ul li { font-size: 1.42cqw; }
+  /* 4 evidence */
+  .evid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 3.4cqw; }
+  .evid .card { padding: 1cqw; display: grid; place-items: center; }
+  .evid .card svg { height: 34cqw; width: auto; display: block; }
+  .big { font-size: 7cqw; font-weight: 700; color: var(--orange); line-height: .95; letter-spacing: -.02em; }
+  .big small { font-size: 3cqw; }
+  .bigline { font-size: 1.4cqw; line-height: 1.45; margin: .8cqw 0 2cqw; color: #3d4650; }
+  .stats { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 2.6cqw; margin-bottom: 2cqw; }
+  .stats b { display: block; font: 700 2.6cqw 'Space Grotesk', sans-serif; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: .95cqw; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 
-  /* 6 — data & validity */
-  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; flex: 1; }
-  .three .card li { font-size: 1.28cqw; }
-  .three .card h3 { font-size: 1.65cqw; }
+  /* 5, 6 screenshots */
+  .shot { display: grid; grid-template-columns: 1.6fr 1fr; gap: 3cqw; align-items: start; }
+  .shot figure { margin: 0; }
+  .shot img { width: 100%; display: block; border-radius: 1cqw; border: 1px solid var(--line); }
+  .list { display: grid; gap: 1.3cqw; }
+  .item { display: grid; grid-template-columns: 2.6cqw 1fr; gap: .4cqw; }
+  .item .n { font: 700 1.9cqw 'Space Grotesk', sans-serif; color: var(--teal); line-height: 1.1; }
+  .item b { display: block; font-size: 1.45cqw; margin-bottom: .2cqw; }
+  .item span { font-size: 1.15cqw; line-height: 1.45; color: #3d4650; }
 
-  /* 7 — team */
-  .team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; margin-bottom: 2.4cqw; }
-  .member b { display: block; font: 700 2cqw 'Space Grotesk', sans-serif; color: #fff; margin-bottom: .4cqw; }
-  .member span { font-size: 1.3cqw; color: #c6cfd8; line-height: 1.4; }
-  .links { margin-top: auto; display: flex; gap: 3cqw; font-size: 1.4cqw; }
-  .links b { color: var(--teal); font-weight: 600; margin-right: .6cqw; }
+  /* 7 close */
+  .slide.close { justify-content: center; padding-bottom: 7%; }
+  .close h2 { font-size: 5cqw; margin: 2cqw 0 1.2cqw; }
+  .goal { font: 500 2cqw/1.35 'Space Grotesk', sans-serif; color: var(--teal-light); max-width: 70cqw; margin-bottom: 3.2cqw; }
+  .team3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4cqw; margin-bottom: 2.6cqw; }
+  .team3 b { display: block; font-size: 1.5cqw; font-weight: 600; margin-bottom: .3cqw; }
+  .team3 span { font-size: 1.1cqw; color: #9fb0c0; line-height: 1.45; }
+  .ai { border-top: 1px solid rgba(255,255,255,.14); padding-top: 1.6cqw; display: grid; grid-template-columns: 1fr 1fr; gap: 2.4cqw;
+    font-size: 1.1cqw; line-height: 1.5; color: #c6d0d9; }
+  .ai b { color: var(--cream); font-weight: 600; }
+  .ai a { color: var(--teal-light); text-decoration: none; }
 
   @media print {
     @page { size: 1600px 900px; margin: 0; }
     html, body { background: none; }
     .deck { height: auto; overflow: visible; }
-    .slide-wrap { height: auto; padding: 0; break-after: page; }
-    .slide { width: 1600px; border-radius: 0; box-shadow: none; }
+    .wrap { height: auto; padding: 0; break-after: page; }
+    .slide { width: 1600px; box-shadow: none; }
   }
 </style>
 </head>
 <body>
+<!-- The real outbound route (HiRISE DTM route, metres around the base, 2.25 km half-width view), shared by slides 1 and 4 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><path id="route" d="M225.0 225.0 L226.5 225.0 L228.0 225.0 L229.5 225.5 L231.1 226.5 L232.6 228.0 L234.1 229.6 L235.6 230.1 L237.1 231.6 L238.6 233.1 L240.1 234.6 L241.6 235.1 L243.2 236.1 L244.7 237.7 L246.2 238.2 L247.7 239.7 L249.2 240.7 L250.7 240.7 L252.2 240.7 L253.7 242.2 L255.3 242.7 L256.8 242.7 L258.3 243.7 L259.8 244.7 L261.3 246.3 L262.8 247.3 L264.3 247.3 L265.8 248.8 L267.4 249.3 L268.9 249.8 L270.4 249.8 L271.9 250.3 L273.4 251.8 L274.9 252.8 L276.4 252.8 L277.9 252.8 L279.5 253.3 L281.0 253.3 L282.5 254.9 L284.0 255.9 L285.5 256.9 L287.0 257.9 L288.5 259.4 L290.0 259.4 L290.5 257.9 L290.5 256.4 L290.5 254.9 L291.0 253.3 L292.6 251.8 L293.6 250.3 L293.6 248.8 L293.6 247.3 L293.6 245.8 L294.1 244.2 L294.1 242.7 L294.1 241.2 L294.1 239.7 L294.1 238.2 L294.1 236.6 L294.1 235.1 L294.1 233.6 L294.1 232.1 L294.6 230.6 L294.6 229.1 L294.6 227.5 L294.6 226.0 L294.6 224.5 L294.6 223.0 L294.6 221.5 L294.6 219.9 L295.1 218.4 L296.1 216.9 L296.1 215.4 L296.1 213.9 L296.1 212.3 L296.1 210.8 L296.1 209.3 L296.1 207.8 L296.1 206.3 L296.1 204.8 L296.1 203.2 L296.1 201.7 L296.1 200.2 L296.1 198.7 L296.1 197.2 L296.1 195.6 L296.1 194.1 L296.1 192.6 L296.1 191.1 L296.1 189.6 L296.1 188.0 L296.1 186.5 L296.1 185.0 L296.1 183.5 L295.6 182.0 L295.6 180.5 L295.6 178.9 L295.6 177.4 L295.6 175.9 L295.6 174.4 L295.6 172.9 L295.6 171.3 L295.6 169.8 L295.6 168.3 L295.6 166.8 L295.6 165.3 L295.6 163.7 L295.6 162.2 L295.1 160.7 L294.6 159.2 L294.6 157.7 L294.6 156.2 L294.6 154.6 L294.6 153.1 L294.6 151.6 L294.6 150.1 L294.6 148.6 L294.6 147.0 L293.6 145.5 L292.1 144.0 L292.1 142.5 L291.6 141.0 L290.5 139.4 L289.5 137.9 L289.0 136.4 L289.0 134.9 L289.0 133.4 L289.0 131.9 L289.0 130.3 L289.0 128.8 L288.0 127.3 L287.0 125.8 L286.0 124.3 L286.0 122.7 L284.5 121.2 L283.0 119.7 L281.5 118.2 L280.0 116.7 L278.4 115.1 L276.9 114.1 L275.4 114.6 L274.4 116.2 L274.4 117.7 L273.9 119.2 L272.9 120.7 L272.4 122.2 L272.4 123.8 L272.4 125.3 L272.4 126.8 L272.4 128.3 L272.4 129.8 L271.9 131.3 L271.9 132.9 L271.9 134.4 L271.4 135.9 L271.4 137.4 L271.4 138.9 L271.4 140.5 L271.4 142.0 L271.4 143.5 L270.4 145.0 L270.4 146.5 L270.4 148.1 L270.4 149.6 L270.4 151.1 L270.4 152.6 L269.9 154.1 L269.4 155.6 L268.9 157.2 L268.4 158.7 L267.9 160.2 L267.9 161.7 L266.3 163.2 L265.3 164.8 L264.8 166.3 L264.8 167.8 L264.8 169.3 L264.3 170.8 L263.3 172.4 L262.8 173.9 L262.8 175.4 L262.3 176.9 L262.3 178.4 L260.8 179.9 L261.3 179.4 L262.3 177.9 L262.8 176.4 L262.8 174.9 L263.3 173.4 L263.8 171.8 L264.3 170.3 L264.8 168.8 L264.8 167.3 L265.3 165.8 L265.3 164.3 L266.8 162.7 L267.9 161.2 L267.9 159.7 L268.9 158.2 L269.4 156.7 L269.4 155.1 L270.4 153.6 L270.4 152.1 L270.4 150.6 L270.4 149.1 L270.4 147.5 L270.4 146.0 L270.9 144.5 L271.4 143.0 L271.4 141.5 L272.4 140.0 L272.4 138.4 L272.4 136.9 L272.4 135.4 L272.4 133.9 L271.9 132.4 L271.9 130.8 L271.9 129.3 L271.9 127.8 L271.9 126.3 L271.9 124.8 L271.4 123.2 L270.4 121.7 L269.4 120.2 L269.4 118.7 L268.4 117.2 L268.4 115.7 L267.9 114.1 L267.4 112.6 L265.8 111.1 L264.3 109.6 L264.3 108.1 L263.8 106.5 L263.3 105.0 L263.3 103.5 L262.3 102.0 L260.8 100.5 L260.3 98.9 L260.3 97.4 L260.3 95.9 L260.3 94.4 L260.8 92.9 L261.8 91.4 L263.3 89.8 L263.8 88.3 L263.8 86.8 L263.8 85.3 L264.3 83.8 L264.8 82.2 L264.8 80.7 L264.8 79.2 L265.3 77.7 L265.8 76.2 L265.8 74.6 L265.8 73.1 L265.8 71.6 L265.8 70.1 L265.8 68.6 L265.8 67.1 L265.8 65.5 L265.8 64.0 L265.8 62.5 L265.8 61.0 L265.8 59.5 L265.8 57.9 L265.8 56.4 L266.3 55.9" /></defs></svg>
 <main class="deck">
 
-<!-- 1 -->
-<section class="slide-wrap"><div class="slide title">
-  <div class="logo-box">
-    <img src="logo.png" alt="RotaRovers — Navigate the unknown" />
-    <span class="wm">AI-generated logo (ChatGPT)</span>
+<!-- 1 · cover -->
+<section class="wrap"><div class="slide dark">
+  <div class="cover">
+    <div style="display:flex;flex-direction:column">
+      <div class="brand"><img src="/favicon.svg" alt="" /><span>RotaRovers</span><small>logo: AI-generated (ChatGPT)</small></div>
+      <p class="kicker" style="margin-top:2.2cqw">NASA Space Apps Challenge 2026 · Interplanetary Survival Guide: Martian Map</p>
+      <h1>RotaRovers<br />Martian Map</h1>
+      <p class="lead">Plan a Marswalk before you step out. Follow it while you walk. A route from NASA terrain data that keeps the crew on walkable ground.</p>
+      <div class="people">
+        <div><b>Recep Mert İkiz</b><span>Data, route, map, interface</span></div>
+        <div><b>Mustafa Ensar Sadıkoğlu</b><span>Walk view</span></div>
+        <div><b>Ahmet Melik İnce</b><span>Science stops, references</span></div>
+      </div>
+    </div>
+    <svg class="art" viewBox="25 25 400 400" role="img" aria-label="The planned route inside a 2 km circle around the base">
+      <circle cx="225" cy="225" r="200" fill="none" stroke="#3a5166" stroke-width="1.2" stroke-dasharray="3 6" />
+      <circle cx="225" cy="225" r="100" fill="none" stroke="#2a3d50" stroke-width="1" />
+      <use href="#route" fill="none" stroke="#3FB8B2" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+      <g fill="#D95F3D"><circle cx="260.3" cy="180.5" r="5.5" /><circle cx="272.4" cy="133.4" r="5.5" /><circle cx="260.3" cy="97.4" r="5.5" /><circle cx="266.3" cy="55.9" r="5.5" /><circle cx="225" cy="225" r="5.5" /></g>
+      <circle cx="225" cy="225" r="11" fill="none" stroke="#D95F3D" stroke-width="1.5" opacity=".7" />
+    </svg>
   </div>
-  <h1>RotaRovers Martian Map</h1>
-  <p class="lead">Plan a Marswalk before you step out. Follow it while you walk.</p>
-  <dl class="meta">
-    <dt>Challenge</dt><dd>Interplanetary Survival Guide: Martian Map · NASA Space Apps Challenge 2026</dd>
-    <dt>Team</dt><dd>RotaRovers — Recep Mert İkiz · Mustafa Ensar Sadıkoğlu · Ahmet Melik İnce</dd>
-    <dt>Live</dt><dd><a href="https://rotarovers-martian-map.pages.dev">rotarovers-martian-map.pages.dev</a></dd>
-  </dl>
-  <span class="pageno">1 / 7</span>
+  <div class="foot"><span>Gale crater · Mount Sharp · Mars</span><span>1 / 7</span></div>
 </div></section>
 
-<!-- 2 -->
-<section class="slide-wrap"><div class="slide">
+<!-- 2 · problem -->
+<section class="wrap"><div class="slide">
   <p class="kicker">The problem</p>
-  <h2>An astronaut on Mars has <span class="accent">two moments</span> that need a map</h2>
-  <div class="cols">
-    <div class="card">
-      <span class="tag">Before the walk</span>
-      <h3>Which route?</h3>
-      <ul>
-        <li>Reach the science stops: signs of <b>past water and habitability</b></li>
-        <li>Stay on ground a suited crew can walk: no slopes over 20°</li>
-        <li>Know the distance, climb and time before leaving the base</li>
-      </ul>
+  <h2>A walk on Mars needs a map twice</h2>
+  <div class="split">
+    <div>
+      <div class="card" style="padding:1.6cqw 1.6cqw 1cqw">
+        <svg viewBox="0 0 620 300" role="img" aria-label="Out-and-back walk: plan before, follow during">
+          <text x="20" y="34" font-size="15" font-weight="600" fill="#1F9E98">BEFORE · PLAN</text>
+          <text x="20" y="56" font-size="14" fill="#56606b">Which route reaches the stops on walkable ground?</text>
+          <line x1="50" y1="130" x2="570" y2="130" stroke="#1F9E98" stroke-width="4" stroke-linecap="round" />
+          <path d="M570 130 C 605 130 605 190 570 190 L 50 190" fill="none" stroke="#1F9E98" stroke-width="2.5" stroke-dasharray="7 6" />
+          <polygon points="58,184 46,190 58,196" fill="#1F9E98" />
+          <rect x="36" y="116" width="28" height="28" rx="4" fill="#0F2133" />
+          <text x="50" y="135" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">B</text>
+          <g font-size="12" font-weight="700" text-anchor="middle">
+            <circle cx="160" cy="130" r="13" fill="#0F2133" /><text x="160" y="134" fill="#fff">1</text>
+            <circle cx="260" cy="130" r="13" fill="#0F2133" /><text x="260" y="134" fill="#fff">2</text>
+            <circle cx="360" cy="130" r="13" fill="#0F2133" /><text x="360" y="134" fill="#fff">3</text>
+            <circle cx="460" cy="130" r="13" fill="#0F2133" /><text x="460" y="134" fill="#fff">4</text>
+            <circle cx="560" cy="130" r="13" fill="#D95F3D" /><text x="560" y="134" fill="#fff">5</text>
+          </g>
+          <text x="560" y="104" font-size="12.5" fill="#B4472A" text-anchor="middle" font-weight="600">turn back</text>
+          <circle cx="315" cy="130" r="17" fill="none" stroke="#D95F3D" stroke-width="3" />
+          <circle cx="315" cy="130" r="6" fill="#D95F3D" />
+          <line x1="315" y1="150" x2="315" y2="226" stroke="#D95F3D" stroke-width="1.2" stroke-dasharray="3 4" />
+          <text x="20" y="250" font-size="15" font-weight="600" fill="#B4472A">DURING · FOLLOW</text>
+          <text x="20" y="272" font-size="14" fill="#56606b">Where am I? Next stop? How far and how long? When do I turn back?</text>
+        </svg>
+      </div>
+      <p class="caption"><b class="c-teal">Teal:</b> the planned route, out and back on the same path · <b class="c-orange">Orange:</b> the astronaut and the turn-back stop · B: base</p>
     </div>
-    <div class="card">
-      <span class="tag teal">During the walk</span>
-      <h3>Where am I?</h3>
-      <ul>
-        <li>Current position and heading on the route</li>
-        <li>Next stop, remaining distance and time</li>
-        <li>The <b>turn-back point</b>: half of the walk's time budget</li>
-      </ul>
+    <div>
+      <p class="statement">A suited crew can only walk gentle slopes, and must always keep enough time to get back.</p>
+      <p class="sub">Our map shows both limits before the crew leaves the base, and keeps them in view on every step of the walk.</p>
+      <p class="label">The mission we planned</p>
+      <div class="chips">
+        <span class="chip">Gale crater, central mound</span>
+        <span class="chip">Science: past water and habitability</span>
+        <span class="chip">5 science stops</span>
+        <span class="chip">Crew on foot</span>
+        <span class="chip">~18 km from Curiosity's traverse</span>
+      </div>
     </div>
   </div>
-  <p class="site muted"><b>Site:</b> Gale crater, on its central mound (Mount Sharp), about 18 km from Curiosity's traverse ·
-    HiRISE terrain model <code>DTEEC_006855_1750_007501_1750_A01</code></p>
-  <span class="pageno">2 / 7</span>
+  <div class="foot"><span>RotaRovers · NASA Space Apps 2026</span><span>2 / 7</span></div>
 </div></section>
 
-<!-- 3 -->
-<section class="slide-wrap"><div class="slide dark">
+<!-- 3 · how -->
+<section class="wrap"><div class="slide">
   <p class="kicker">How the route is made</p>
-  <h2>From NASA terrain data to a <span class="accent">walkable route</span></h2>
-  <div class="pipe">
-    <div class="step"><b>HiRISE DTM</b><span>NASA MRO elevation model of the canyon, read over HTTP</span></div>
-    <div class="step"><b>5 m slope grid</b><span>75 % of the area is under 20°, 10 % is over 30°</span></div>
-    <div class="step"><b>No-go over 20°</b><span>NASA's lunar EVA walking limit, used as a working value for Mars</span></div>
-    <div class="step"><b>Least-cost route</b><span>Through the 5 science stops and back to the base</span></div>
+  <h2>Terrain → no-go ground → route</h2>
+  <div class="steps">
+    <div class="card step">
+      <div class="stepnum">1</div><h3>Measure the terrain</h3>
+      <p>NASA's HiRISE camera on Mars Reconnaissance Orbiter made a 3D elevation model of the canyon. We turn it into a slope grid.</p>
+      <span class="mono">DTEEC_006855_1750 · 5 m slope grid</span>
+    </div>
+    <span class="arrow">→</span>
+    <div class="card step">
+      <div class="stepnum">2</div><h3>Mark the no-go ground</h3>
+      <p>Ground steeper than 20° is closed: NASA's walking limit for Artemis suits on the Moon, used here as a working value for Mars.</p>
+      <span class="mono">slope &gt; 20° → impassable</span>
+    </div>
+    <span class="arrow">→</span>
+    <div class="card step">
+      <div class="stepnum">3</div><h3>Find the route</h3>
+      <p>A least-cost search links the base and the five science stops through open ground only, then walks back the same way.</p>
+      <span class="mono">steepest point on route: 18.4°</span>
+    </div>
   </div>
-  <div class="nums">
-    <div><div class="num">8.92<small> km</small></div><div class="numlbl">Round trip</div></div>
-    <div><div class="num">18.4<small>°</small></div><div class="numlbl">Steepest point</div></div>
-    <div><div class="num">356<small> m</small></div><div class="numlbl">Climb and descent</div></div>
-    <div><div class="num">4h 27<small>m</small></div><div class="numlbl">At 2 km/h (NASA EVA rate)</div></div>
+  <div class="card dist">
+    <p class="label" style="margin:0">Slope of the study area (5 m grid)</p>
+    <div class="bar">
+      <div style="width:75%;background:#1F9E98">75 % walkable · under 20°</div>
+      <div style="width:15%;background:#E8A37F">15 % · 20–30°</div>
+      <div style="width:10%;background:#D95F3D">10 % · &gt; 30°</div>
+    </div>
+    <p class="caption" style="margin:0">A steep ridge splits the area in two; every stop had to be on the same walkable side. <b class="c-teal">Teal:</b> walkable · <b class="c-orange">Orange:</b> closed</p>
   </div>
-  <p class="callout">The farthest point is <b>1.74 km from the base</b> in a straight line: inside the ~2 km walking radius NASA plans
-    for Artemis III. The walked path is longer because it goes around ground steeper than 20°.</p>
-  <span class="pageno">3 / 7</span>
+  <div class="foot"><span>RotaRovers · NASA Space Apps 2026</span><span>3 / 7</span></div>
 </div></section>
 
-<!-- 4 -->
-<section class="slide-wrap"><div class="slide">
+<!-- 4 · evidence -->
+<section class="wrap"><div class="slide">
+  <p class="kicker">The planned walk</p>
+  <h2>Inside the radius NASA plans for astronauts</h2>
+  <div class="evid">
+    <div>
+      <div class="card">
+        <svg viewBox="0 0 450 450" role="img" aria-label="The route inside a 2 km circle around the base; the farthest stop is 1.74 km away">
+          <circle cx="225" cy="225" r="200" fill="#EAF6F5" stroke="#1F9E98" stroke-width="1.5" stroke-dasharray="5 6" />
+          <text x="225" y="443" font-size="16" fill="#1F9E98" text-anchor="middle" font-weight="600">2 km walking radius (NASA, Artemis III)</text>
+          <line x1="225" y1="225" x2="266.3" y2="55.9" stroke="#D95F3D" stroke-width="1.5" stroke-dasharray="4 4" />
+          <text x="128" y="142" font-size="19" fill="#B4472A" font-weight="700">1.74 km</text>
+          <use href="#route" fill="none" stroke="#0F2133" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" />
+          <use href="#route" fill="none" stroke="#1F9E98" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" />
+          <g font-size="11" font-weight="700" text-anchor="middle"><circle cx="225.0" cy="225.0" r="10" fill="#D95F3D" stroke="#fff" stroke-width="2" /><text x="225.0" y="229.0" fill="#fff">1</text><circle cx="260.3" cy="180.5" r="10" fill="#D95F3D" stroke="#fff" stroke-width="2" /><text x="260.3" y="184.5" fill="#fff">2</text><circle cx="272.4" cy="133.4" r="10" fill="#D95F3D" stroke="#fff" stroke-width="2" /><text x="272.4" y="137.4" fill="#fff">3</text><circle cx="260.3" cy="97.4" r="10" fill="#D95F3D" stroke="#fff" stroke-width="2" /><text x="260.3" y="101.4" fill="#fff">4</text><circle cx="266.3" cy="55.9" r="10" fill="#D95F3D" stroke="#fff" stroke-width="2" /><text x="266.3" y="59.9" fill="#fff">5</text></g>
+          <rect x="203" y="231" width="16" height="16" rx="3" fill="#0F2133" /><text x="211" y="243.5" font-size="10.5" font-weight="700" fill="#fff" text-anchor="middle">B</text>
+        </svg>
+      </div>
+      <p class="caption">Drawn from our computed route, to scale. <b class="c-teal">Teal:</b> route · <b class="c-orange">Orange:</b> science stops and the straight line to the farthest one</p>
+    </div>
+    <div>
+      <div class="big">1.74<small> km</small></div>
+      <p class="bigline">The farthest stop from the base, in a straight line. The walked path is longer (4.46 km each way) because it goes around ground steeper than 20°.</p>
+      <div class="stats">
+        <div><b>8.92 km</b><span>Round trip</span></div>
+        <div><b>356 m</b><span>Climb</span></div>
+        <div><b>4 h 27 m</b><span>At 2 km/h</span></div>
+      </div>
+      <div class="note"><b>Checked by 54 automated tests:</b> the steepest point stays under 20°, the route is continuous and inside the terrain model, and its length agrees between the data pipeline and the app (Mars radius).</div>
+    </div>
+  </div>
+  <div class="foot"><span>Sources: NASA Exploration EVA ConOps (2020) · HiRISE DTM</span><span>4 / 7</span></div>
+</div></section>
+
+<!-- 5 · plan mode -->
+<section class="wrap"><div class="slide">
   <p class="kicker">Plan mode</p>
-  <h2>Choose the route <span class="accent">before</span> the walk</h2>
+  <h2>Choose the walk before leaving the base</h2>
   <div class="shot">
-    <figure><img src="plan.jpg" alt="Plan mode: route, science stops and slope layers on the map" /></figure>
-    <ul>
-      <li><b>Three map layers</b> you can switch: terrain shading, slope classes (15–20° caution, over 20° no-go), route</li>
-      <li><b>Five science stops</b>, each with its reason and a source (HiRISE, LPSC papers)</li>
-      <li><b>Conditions:</b> Curiosity REMS weather, InSight wind, Curiosity RAD radiation: about 0.12 mSv for this walk</li>
-      <li>Every reading is dated and labelled as a point measurement, not a forecast</li>
-    </ul>
+    <figure>
+      <img src="plan.jpg" alt="Plan mode: route, science stops and slope layers on the map" />
+      <p class="caption"><b style="color:#c0504d">Red:</b> slope over 20°, no-go · <b style="color:#b8860b">Yellow:</b> 15–20°, caution · <b class="c-teal">Teal:</b> the route · Icons: the science theme of each stop</p>
+    </figure>
+    <div class="list">
+      <div class="item"><span class="n">1</span><div><b>Three switchable layers</b><span>Terrain shading, slope classes and the route, from the HiRISE terrain model.</span></div></div>
+      <div class="item"><span class="n">2</span><div><b>Five science stops</b><span>Signs of past water: an inverted channel, layered walls, water-moved debris, sulfates. Each with a source.</span></div></div>
+      <div class="item"><span class="n">3</span><div><b>Conditions, honestly dated</b><span>Curiosity REMS weather, InSight wind, Curiosity RAD radiation: about 0.12 mSv for this walk. Point measurements, not a forecast.</span></div></div>
+    </div>
   </div>
-  <span class="pageno">4 / 7</span>
+  <div class="foot"><span>RotaRovers · NASA Space Apps 2026</span><span>5 / 7</span></div>
 </div></section>
 
-<!-- 5 -->
-<section class="slide-wrap"><div class="slide">
+<!-- 6 · walk mode -->
+<section class="wrap"><div class="slide">
   <p class="kicker">Walk mode</p>
-  <h2>Follow the route <span class="accent">during</span> the walk</h2>
+  <h2>Four answers on every step</h2>
   <div class="shot">
-    <figure><img src="walk.jpg" alt="Walk mode: the map follows the astronaut; elevation profile, position and next stop" /></figure>
-    <ul>
-      <li>The map <b>follows the astronaut</b>; drag to look around, one tap to lock back on</li>
-      <li><b>Where am I</b>, next stop, remaining distance and time, the <b>turn-back point</b></li>
-      <li>Elevation profile and the slope just ahead; leg-by-leg breakdown</li>
-      <li>EVA sheet to copy or download; English and Turkish; light and dark</li>
-      <li class="muted">No GPS on Mars yet: a slider and playback simulate the walk</li>
-    </ul>
+    <figure>
+      <img src="walk.jpg" alt="Walk mode: the map follows the astronaut; elevation profile, position and next stop" />
+      <p class="caption">The map follows the astronaut (<b>white ring</b>); drag to look around, one tap to lock back on. No GPS on Mars yet: a slider and playback simulate the walk.</p>
+    </figure>
+    <div class="list">
+      <div class="item"><span class="n">1</span><div><b>Where am I?</b><span>Position, heading and the slope underfoot.</span></div></div>
+      <div class="item"><span class="n">2</span><div><b>What is next?</b><span>Next stop, its distance and arrival time.</span></div></div>
+      <div class="item"><span class="n">3</span><div><b>How much is left?</b><span>Remaining distance and time to the base.</span></div></div>
+      <div class="item"><span class="n">4</span><div><b>When do I turn back?</b><span>The turn-back point at half the walk's time budget.</span></div></div>
+      <p class="caption" style="margin:0">Also: elevation profile, leg-by-leg table, EVA sheet export, English and Turkish, light and dark.</p>
+    </div>
   </div>
-  <span class="pageno">5 / 7</span>
+  <div class="foot"><span>RotaRovers · NASA Space Apps 2026</span><span>6 / 7</span></div>
 </div></section>
 
-<!-- 6 -->
-<section class="slide-wrap"><div class="slide">
-  <p class="kicker">Data and validity</p>
-  <h2>Built on <span class="accent">NASA data</span>, checked by tests</h2>
-  <div class="three">
-    <div class="card">
-      <h3>NASA data</h3>
-      <ul>
-        <li>MRO HiRISE terrain model and images</li>
-        <li>Curiosity REMS weather and rover waypoints</li>
-        <li>Curiosity RAD surface radiation</li>
-        <li>InSight weather (wind)</li>
-        <li>NASA Exploration EVA ConOps: 20° slope, 2 km/h, ~2 km radius</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>Checked by tests</h3>
-      <ul>
-        <li>Steepest point on the route stays under 20°</li>
-        <li>The route is continuous and inside the terrain model</li>
-        <li>Route length in the data pipeline and in the app agree (Mars radius, 3,396 km)</li>
-        <li>54 automated tests (24 Python, 30 web)</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>Honest limits</h3>
-      <ul>
-        <li>20° is a lunar limit; Mars has no published value yet</li>
-        <li>Weather and radiation were measured at other places and times</li>
-        <li>Walk position is simulated, not live</li>
-      </ul>
-    </div>
+<!-- 7 · close -->
+<section class="wrap"><div class="slide dark close">
+  <p class="kicker">RotaRovers · Navigate the unknown</p>
+  <h2>Thank you</h2>
+  <p class="goal">Our goal: a map that keeps a crew on walkable ground and always shows the way back.</p>
+  <div class="team3">
+    <div><b>Recep Mert İkiz</b><span>Data pipeline, route, map, both modes' interface, deployment</span></div>
+    <div><b>Mustafa Ensar Sadıkoğlu</b><span>Walk view: position, playback, telemetry, elevation profile</span></div>
+    <div><b>Ahmet Melik İnce</b><span>Science stops and their sources, references</span></div>
   </div>
-  <span class="pageno">6 / 7</span>
-</div></section>
-
-<!-- 7 -->
-<section class="slide-wrap"><div class="slide dark">
-  <p class="kicker">Team RotaRovers</p>
-  <h2>Who built it, and <span class="accent">how</span></h2>
-  <div class="team">
-    <div class="member"><b>Recep Mert İkiz</b><span>Data pipeline, route, map, both modes' interface, deployment</span></div>
-    <div class="member"><b>Mustafa Ensar Sadıkoğlu</b><span>Walk view: position, playback, telemetry, elevation profile</span></div>
-    <div class="member"><b>Ahmet Melik İnce</b><span>Science stops and their sources; references</span></div>
+  <div class="ai">
+    <p><b>Use of AI.</b> The idea and every decision came from the team. Claude Code (Claude Opus 5.5) and Google Antigravity helped write code, tests and the Turkish translation. The logo was generated with ChatGPT and is marked.</p>
+    <p><b>Try it.</b> <a href="https://rotarovers-martian-map.pages.dev">rotarovers-martian-map.pages.dev</a><br /><b>Code (MIT).</b> <a href="https://github.com/mertikiz/rotarovers-martian-map">github.com/mertikiz/rotarovers-martian-map</a><br /><b>Data.</b> NASA MRO HiRISE, Curiosity REMS and RAD, InSight</p>
   </div>
-  <div class="card">
-    <h3>Use of AI</h3>
-    <ul>
-      <li>The idea and every design decision came from the team.</li>
-      <li>Claude Code (Claude Opus 5.5) and Google Antigravity helped write code, tests and the Turkish translation.</li>
-      <li>The team logo was generated with ChatGPT and is marked as such.</li>
-    </ul>
-  </div>
-  <div class="links">
-    <span><b>App</b>rotarovers-martian-map.pages.dev</span>
-    <span><b>Code</b>github.com/mertikiz/rotarovers-martian-map (MIT)</span>
-  </div>
-  <span class="pageno">7 / 7</span>
+  <div class="foot"><span>NASA Space Apps Challenge 2026</span><span>7 / 7</span></div>
 </div></section>
 
 </main>
 <script>
-  // Arrow keys / Page keys move one slide.
+  // Arrow and Page keys move one slide.
   const deck = document.querySelector('.deck')
   addEventListener('keydown', (e) => {
     const step = { ArrowDown: 1, ArrowRight: 1, PageDown: 1, ' ': 1, ArrowUp: -1, ArrowLeft: -1, PageUp: -1 }[e.key]
