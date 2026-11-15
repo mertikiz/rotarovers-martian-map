@@ -351,7 +351,7 @@ export function ElevationProfile({
                 onClick={() => onSelectIndex?.(stop.routeIndex)}
               >
                 <title>
-                  Stop #{stop.order}: {stop.name} ({formatDistance(stop.distanceAlongRouteM)},{' '}
+                  Stop #{stop.order}: {t(stop.name)} ({formatDistance(stop.distanceAlongRouteM)},{' '}
                   {formatElev(pt.elev)})
                 </title>
                 <circle

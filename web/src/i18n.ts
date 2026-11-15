@@ -126,6 +126,24 @@ export const TR: Record<string, string> = {
   'Total Climb / Descent': 'Toplam tırmanış / iniş',
   'Assumed Walk Speed': 'Varsayılan yürüyüş hızı',
 
+  // Science stops (names and reasons from content/stops.csv via route.geojson). Keyed by the whole English text:
+  // if a stop's text changes in the CSV, that stop simply shows English until its Turkish is updated here.
+  'Possible Inverted Channel': 'Olası Ters Dönmüş Kanal',
+  'The canyon floor west of and about 150 m below this stop holds a sinuous, raised ridge that the HiRISE team interprets as a possible inverted channel deposit. Inverted channels form when stream sediment is cemented in place by minerals deposited from water, and the softer rock around it later erodes away. Samples of the ridge could test whether liquid water once flowed here.':
+    "Bu durağın batısında ve yaklaşık 150 m altındaki kanyon tabanında, HiRISE ekibinin olası bir ters dönmüş kanal çökeli olarak yorumladığı kıvrımlı, kabarık bir sırt var. Ters dönmüş kanallar, akarsu tortusu sudan çökelen minerallerle yerinde çimentolanıp etrafındaki daha yumuşak kaya zamanla aşındığında oluşur. Sırttan alınacak örnekler, burada bir zamanlar sıvı su akıp akmadığını sınayabilir.",
+  'East Wall Layers': 'Doğu Duvarı Katmanları',
+  "This stop is on the eastern side of the canyon, about 160 m above its floor. Gale crater's central mound is built of layered (stratified) material, and the canyon cuts through it, exposing the layers in its walls; sampling layer by layer gives an ordered record of how these deposits built up. The HiRISE team notes the canyon may have been carved by running water.":
+    'Bu durak kanyonun doğu yakasında, tabanından yaklaşık 160 m yukarıda. Gale kraterinin merkezî tepesi katmanlı (tabakalı) malzemeden oluşur; kanyon bu tepeyi keserek katmanları duvarlarında açığa çıkarır. Katman katman örnek almak, bu çökellerin nasıl biriktiğinin sıralı bir kaydını verir. HiRISE ekibi, kanyonun akan suyla oyulmuş olabileceğini belirtiyor.',
+  'Debris Deposits': 'Moloz Çökelleri',
+  'The canyon holds debris deposits and levees left by past mass movements. Hughes et al. (2020) find the slopes too low for dry flows, which suggests water was needed to set them moving, likely groundwater seeping out of the slopes. Orbital CRISM spectra indicate the debris is made of polyhydrated (water-bearing) sulfates.':
+    'Kanyonda geçmişteki kütle hareketlerinin bıraktığı moloz çökelleri ve setler var. Hughes vd. (2020), eğimlerin kuru akışlar için fazla düşük olduğunu buluyor; bu da onları harekete geçirmek için suyun, büyük olasılıkla yamaçlardan sızan yeraltı suyunun gerektiğini düşündürüyor. Yörüngedeki CRISM spektrumları molozun polihidrat (su içeren) sülfatlardan oluştuğunu gösteriyor.',
+  'Sulfate Strata and Alcoves': 'Sülfat Katmanları ve Oyuklar',
+  'The canyon cuts through sulfate-bearing strata, with tributary alcoves on its walls and coarse debris along its floor. Hughes et al. (2019) state that how much water was involved in forming these deposits is still unknown, which makes them a direct target for observation on the ground.':
+    'Kanyon sülfat içeren katmanları keser; duvarlarında yan kollara açılan oyuklar, tabanı boyunca iri moloz bulunur. Hughes vd. (2019), bu çökellerin oluşumunda ne kadar su rol oynadığının hâlâ bilinmediğini belirtiyor; bu da onları yerde gözlem için doğrudan bir hedef yapıyor.',
+  'Northern Canyon Terrace': 'Kuzey Kanyon Taraçası',
+  "The walk ends on terrace ground at the northern end of the route. The layered rock of Gale's central mound is exposed in the canyon walls, and the HiRISE team notes the canyon may have been carved by running water.":
+    "Yürüyüş, rotanın kuzey ucundaki taraça zemininde biter. Gale'in merkezî tepesinin katmanlı kayası kanyon duvarlarında açığa çıkar; HiRISE ekibi kanyonun akan suyla oyulmuş olabileceğini belirtiyor.",
+
   // Elevation profile
   'Route Elevation Profile': 'Rota yükselti profili',
   'Round-trip profile (symmetric around the turnaround at Stop #{n}). Click a stop marker, or use the "Jump here" buttons below, to move there.':

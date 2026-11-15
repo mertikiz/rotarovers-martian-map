@@ -260,11 +260,11 @@ export default function MapView({ walker = null }: { walker?: LonLat | null }) {
                       onClick={() => setSelected(open ? null : s.order)}
                     >
                       <span className="num">{s.order}</span>
-                      <span>{s.name}</span>
+                      <span>{t(s.name)}</span>
                     </button>
                     {open && (s.why || s.sourceUrl) && (
                       <div className="stop-detail">
-                        {s.why && <p>{s.why}</p>}
+                        {s.why && <p>{t(s.why)}</p>}
                         {s.sourceUrl && (
                           <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer">
                             {t('Source: {host}', { host: hostOf(s.sourceUrl) })}

@@ -347,7 +347,7 @@ export function WalkView({
           </div>
           <p className="walk-card-footer">
             {snapshot.currentStop
-              ? t('At Stop #{n}: {name}', { n: snapshot.currentStop.order, name: snapshot.currentStop.name })
+              ? t('At Stop #{n}: {name}', { n: snapshot.currentStop.order, name: t(snapshot.currentStop.name) })
               : t('Elapsed time: {time}', { time: formatDuration(snapshot.elapsedTimeSec) })}
           </p>
         </article>
@@ -359,7 +359,7 @@ export function WalkView({
             {snapshot.nextStop && snapshot.distanceToNextStopM !== null ? (
               <>
                 <p className="walk-card-value">
-                  #{snapshot.nextStop.order} {snapshot.nextStop.name}
+                  #{snapshot.nextStop.order} {t(snapshot.nextStop.name)}
                 </p>
                 <p className="walk-card-sub">
                   {t('{dist} ahead · ETA {time}', {
@@ -465,7 +465,7 @@ export function WalkView({
                 <li key={stop.order} className={itemClass}>
                   <div>
                     <strong>
-                      #{stop.order} {stop.name}
+                      #{stop.order} {t(stop.name)}
                     </strong>{' '}
                     <span className="walk-slider-readout">
                       ({formatLonLat(stop.coordinates)})
@@ -482,7 +482,7 @@ export function WalkView({
                         : ''}
                     </div>
                     {stop.whyHabitability && (
-                      <div className="walk-slider-readout">{stop.whyHabitability}</div>
+                      <div className="walk-slider-readout">{t(stop.whyHabitability)}</div>
                     )}
                   </div>
                   <button
